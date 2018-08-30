@@ -48,8 +48,10 @@ import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.api.errors.NoMessageException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.pgm.internal.CLIText;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.util.PGPSign;
 import org.eclipse.jgit.util.RawParseUtils;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
@@ -80,13 +82,20 @@ class Commit extends TextBuiltin {
 	/** {@inheritDoc} */
 	@Override
 	protected void run() throws NoHeadException, NoMessageException,
-			ConcurrentRefUpdateException, JGitInternalException, Exception {
+			ConcurrentRefUpdateException, JGitInternalException,
+			Exception {
 		try (Git git = new Git(db)) {
+			StoredConfig config = git.getRepository().getConfig();
+			boolean gpgsign = config.getBoolean("commit", "gpgsign", false);
 			CommitCommand commitCmd = git.commit();
 			if (author != null)
 				commitCmd.setAuthor(RawParseUtils.parsePersonIdent(author));
 			if (message != null)
 				commitCmd.setMessage(message);
+			if (gpgsign) {
+				commitCmd.setGpgSig(PGPSign.signExternal(
+						commitCmd.getMessage()));
+			}
 			if (only && paths.isEmpty())
 				throw die(CLIText.get().pathsRequired);
 			if (only && all)
@@ -115,6 +124,9 @@ class Commit extends TextBuiltin {
 				if (branchName.startsWith(Constants.R_HEADS))
 					branchName = branchName.substring(Constants.R_HEADS.length());
 			}
+			// String gpgRaw = new String(commit.getRawGpgSignature());
+			// outw.println(gpgRaw);
+			outw.println(commit.getFullMessage());
 			outw.println("[" + branchName + " " + commit.name() + "] " //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 					+ commit.getShortMessage());
 		}

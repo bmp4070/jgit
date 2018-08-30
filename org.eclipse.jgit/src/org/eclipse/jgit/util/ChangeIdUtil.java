@@ -87,14 +87,18 @@ public class ChangeIdUtil {
 	 * @param committer
 	 *            the {@link org.eclipse.jgit.lib.PersonIdent} for the presumed
 	 *            committer and time
+	 * @param gpgSig
+	 *            The gpgSig of this commit
 	 * @param message
 	 *            The commit message
 	 * @return the change id SHA1 string (without the 'I') or null if the
 	 *         message is not complete enough
+	 * @since 5.1
 	 */
 	public static ObjectId computeChangeId(final ObjectId treeId,
 			final ObjectId firstParentId, final PersonIdent author,
-			final PersonIdent committer, final String message) {
+			final PersonIdent committer, final String gpgSig,
+			final String message) {
 		String cleanMessage = clean(message);
 		if (cleanMessage.length() == 0)
 			return null;
@@ -112,7 +116,10 @@ public class ChangeIdUtil {
 		b.append("\n"); //$NON-NLS-1$
 		b.append("committer "); //$NON-NLS-1$
 		b.append(committer.toExternalString());
-		b.append("\n\n"); //$NON-NLS-1$
+		b.append("\n"); //$NON-NLS-1$
+		b.append("gpgsig "); //$NON-NLS-1$
+		b.append(gpgSig);
+		b.append("\n\n"); //$NON-NLS-1$ \
 		b.append(cleanMessage);
 		try (ObjectInserter f = new ObjectInserter.Formatter()) {
 			return f.idFor(Constants.OBJ_COMMIT, Constants.encode(b.toString()));

@@ -49,7 +49,7 @@ package org.eclipse.jgit.lib;
  * configuration keys
  */
 @SuppressWarnings("nls")
-public final class ConfigConstants {
+public class ConfigConstants {
 	/** The "core" section */
 	public static final String CONFIG_CORE_SECTION = "core";
 
@@ -73,6 +73,13 @@ public final class ConfigConstants {
 
 	/** The "user" section */
 	public static final String CONFIG_USER_SECTION = "user";
+
+	/**
+	 * The "commit" section
+	 *
+	 * @since 5.1
+	 */
+	public static final String CONFIG_COMMIT_SECTION = "commit";
 
 	/** The "gerrit" section */
 	public static final String CONFIG_GERRIT_SECTION = "gerrit";

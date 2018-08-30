@@ -549,6 +549,101 @@ public final class RawParseUtils {
 	}
 
 	/**
+	 * @param b
+	 *            buffer to scan
+	 * @param ptr
+	 *            position within buffer to start looking for the signature
+	 * @return new position just after the signature. This is either b.length,
+	 *         or the index of the header's terminating newline.
+	 * @since 5.1
+	 */
+	public static final int signatureStart(final byte[] b, int ptr) {
+		final byte[] header = { 'g', 'p', 'g', 's', 'i', 'g' };
+		return headerStart(header, b, ptr);
+	}
+
+	/**
+	 * @param b
+	 *            buffer to scan
+	 * @param ptr
+	 *            position within buffer to start looking for the signature
+	 * @return new position just after the signature. This is either b.length,
+	 *         or the index of the header's terminating newline.
+	 * @since 5.1
+	 */
+	public static final int signatureEnd(final byte[] b, int ptr) {
+		final int sz = b.length;
+		if (ptr < sz)
+			ptr += 30; // skip BEGIN PGP line
+		if (b[ptr] == 'V')
+			ptr = nextLF(b, ptr); // skip version line if exists
+		// set ptr to beginning of END PGP SIGNATURE
+		ptr = next(b, ptr, '-') + 4; // skip -----
+		final byte[] header = Constants.encodeASCII("END PGP"); //$NON-NLS-1$
+		ptr = match(b, ptr, header);
+		if (ptr != -1)
+			ptr = nextLF(b, ptr) - 1;
+		return ptr;
+	}
+
+	/**
+	 * Locate the end of the header. Note that headers may be more than one line
+	 * long.
+	 *
+	 * @param b
+	 *            buffer to scan.
+	 * @param ptr
+	 *            position within buffer to start looking for the end-of-header.
+	 * @return new position just after the header. This is either b.length, or
+	 *         the index of the header's terminating newline.
+	 * @since 5.1
+	 */
+	public static final int headerEnd(final byte[] b, int ptr) {
+		final int sz = b.length;
+		while (ptr < sz) {
+			final byte c = b[ptr++];
+			if (c == '\n' && (ptr == sz || b[ptr] != ' ')) {
+				return ptr - 1;
+			}
+		}
+		return ptr - 1;
+	}
+
+	/**
+	 * Find the start of the contents of a given header.
+	 *
+	 * @param b
+	 *            buffer to scan.
+	 * @param headerName
+	 *            header to search for
+	 * @param ptr
+	 *            position within buffer to start looking for header at.
+	 * @return new position at the start of the header's contents, -1 for
+	 *         not found
+	 * @since 5.1
+	 */
+	public static final int headerStart(byte[] headerName, byte[] b, int ptr) {
+		// Start by advancing to just past a LF or buffer start
+		if (ptr != 0) {
+			ptr = nextLF(b, ptr - 1);
+		}
+		while (ptr < b.length - (headerName.length + 1)) {
+			boolean found = true;
+			for (int i = 0; i < headerName.length; i++) {
+				if (headerName[i] != b[ptr++]) {
+					found = false;
+					break;
+				}
+			}
+			if (found && b[ptr++] == ' ') {
+				return ptr;
+			}
+			ptr = nextLF(b, ptr);
+		}
+		return -1;
+	}
+
+	/**
 	 * Locate the first position before a given character.
 	 *
 	 * @param b
@@ -1201,6 +1296,14 @@ public final class RawParseUtils {
 			ptr += 46; // skip the "tree ..." line.
 		while (ptr < sz && b[ptr] == 'p')
 			ptr += 48; // skip this parent.
+
+		// skip gpg signature if present
+		int start = RawParseUtils.signatureStart(b, ptr);
+		int end = ptr;
+		if (start > 0)
+			end = RawParseUtils.signatureEnd(b, start);
+		if (end > ptr)
+			ptr = end;
 
 		// Skip any remaining header lines, ignoring what their actual
 		// header line type is. This is identical to the logic for a tag.

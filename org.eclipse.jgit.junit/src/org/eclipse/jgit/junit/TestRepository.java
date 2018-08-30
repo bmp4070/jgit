@@ -276,7 +276,7 @@ public class TestRepository<R extends Repository> {
 	 *
 	 * @param content
 	 *            binary file content.
-	 * @return the new, fully parsed blob.
+	 * @return reference to the blob.
 	 * @throws Exception
 	 */
 	public RevBlob blob(byte[] content) throws Exception {
@@ -285,7 +285,7 @@ public class TestRepository<R extends Repository> {
 			id = ins.insert(Constants.OBJ_BLOB, content);
 			ins.flush();
 		}
-		return (RevBlob) pool.parseAny(id);
+		return pool.lookupBlob(id);
 	}
 
 	/**
@@ -312,22 +312,21 @@ public class TestRepository<R extends Repository> {
 	 * @param entries
 	 *            the files to include in the tree. The collection does not need
 	 *            to be sorted properly and may be empty.
-	 * @return the new, fully parsed tree specified by the entry list.
+	 * @return reference to the tree specified by the entry list.
 	 * @throws Exception
 	 */
 	public RevTree tree(DirCacheEntry... entries) throws Exception {
 		final DirCache dc = DirCache.newInCore();
 		final DirCacheBuilder b = dc.builder();
-		for (DirCacheEntry e : entries) {
+		for (DirCacheEntry e : entries)
 			b.add(e);
-		}
 		b.finish();
 		ObjectId root;
 		try (ObjectInserter ins = inserter) {
 			root = dc.writeTree(ins);
 			ins.flush();
 		}
-		return pool.parseTree(root);
+		return pool.lookupTree(root);
 	}
 
 	/**
@@ -423,7 +422,7 @@ public class TestRepository<R extends Repository> {
 	 *            the root tree for the commit.
 	 * @param parents
 	 *            zero or more parents of the commit.
-	 * @return the new, fully parsed commit.
+	 * @return the new commit.
 	 * @throws Exception
 	 */
 	public RevCommit commit(final int secDelta, final RevTree tree,
@@ -443,7 +442,7 @@ public class TestRepository<R extends Repository> {
 			id = ins.insert(c);
 			ins.flush();
 		}
-		return pool.parseCommit(id);
+		return pool.lookupCommit(id);
 	}
 
 	/**
@@ -468,7 +467,7 @@ public class TestRepository<R extends Repository> {
 	 *            with {@code refs/tags/}.
 	 * @param dst
 	 *            object the tag should be pointed at.
-	 * @return the new, fully parsed annotated tag object.
+	 * @return the annotated tag object.
 	 * @throws Exception
 	 */
 	public RevTag tag(String name, RevObject dst) throws Exception {
@@ -482,7 +481,7 @@ public class TestRepository<R extends Repository> {
 			id = ins.insert(t);
 			ins.flush();
 		}
-		return pool.parseTag(id);
+		return (RevTag) pool.lookupAny(id, Constants.OBJ_TAG);
 	}
 
 	/**
@@ -706,8 +705,8 @@ public class TestRepository<R extends Repository> {
 	 *
 	 * @param id
 	 *            commit-ish to cherry-pick.
-	 * @return the new, fully parsed commit, or null if no work was done due to
-	 *         the resulting tree being identical.
+	 * @return newly created commit, or null if no work was done due to the
+	 *         resulting tree being identical.
 	 * @throws Exception
 	 */
 	public RevCommit cherryPick(AnyObjectId id) throws Exception {
@@ -1025,6 +1024,8 @@ public class TestRepository<R extends Repository> {
 
 		private int tick = 1;
 
+		private String gpgSig = "";
+
 		private String message = "";
 
 		private RevCommit self;
@@ -1149,6 +1150,15 @@ public class TestRepository<R extends Repository> {
 			return author;
 		}
 
+		public CommitBuilder gpgSig(String g) {
+			gpgSig = g;
+			return this;
+		}
+
+		public String gpgSig() {
+			return gpgSig;
+		}
+
 		public CommitBuilder committer(PersonIdent c) {
 			committer = c;
 			return this;
@@ -1198,7 +1208,7 @@ public class TestRepository<R extends Repository> {
 					commitId = ins.insert(c);
 					ins.flush();
 				}
-				self = pool.parseCommit(commitId);
+				self = pool.lookupCommit(commitId);
 
 				if (branch != null)
 					branch.update(self);
@@ -1220,7 +1230,9 @@ public class TestRepository<R extends Repository> {
 			ObjectId cid;
 			if (changeId.equals(""))
 				cid = ChangeIdUtil.computeChangeId(c.getTreeId(), firstParentId,
-						c.getAuthor(), c.getCommitter(), message);
+						c.getAuthor(), c.getCommitter(),
+						c.getGpgSig().toString(),
+						message);
 			else
 				cid = ObjectId.fromString(changeId);
 			message = ChangeIdUtil.insertId(message, cid);

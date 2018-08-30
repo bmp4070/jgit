@@ -67,6 +67,8 @@ public class ChangeIdUtilTest {
 	final PersonIdent q = RawParseUtils.parsePersonIdent(
 			"W Riter <writer@example.com> 1142878502 -0500");
 
+	final String g = "gpgsig";
+
 	ObjectId treeId = ObjectId
 			.fromString("f51de923607cd51cf872b928a6b523ba823f7f35");
 
@@ -114,7 +116,8 @@ public class ChangeIdUtilTest {
 	@Test
 	public void testId() {
 		String msg = "A\nMessage\n";
-		ObjectId id = ChangeIdUtil.computeChangeId(treeId, parentId, p, q, msg);
+		ObjectId id = ChangeIdUtil.computeChangeId(treeId, parentId, p, q, g,
+				msg);
 		assertEquals("73f3751208ac92cbb76f9a26ac4a0d9d472e381b", ObjectId
 				.toString(id));
 	}
@@ -690,7 +693,7 @@ public class ChangeIdUtilTest {
 
 	private String call(String body, boolean replaceExisting) throws Exception {
 		ObjectId computeChangeId = ChangeIdUtil.computeChangeId(treeId1,
-				parentId1, author, committer, body);
+				parentId1, author, committer, g, body);
 		if (computeChangeId == null)
 			return body;
 		return ChangeIdUtil.insertId(body, computeChangeId, replaceExisting);

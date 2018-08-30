@@ -73,6 +73,16 @@
       <groupId>com.jcraft</groupId>
       <artifactId>jsch</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk15on</artifactId>
+      <version>1.60</version>
+     </dependency>
+    <dependency>
+     <groupId>org.bouncycastle</groupId>
+     <artifactId>bcpg-jdk15on</artifactId>
+     <version>1.60</version>
+    </dependency>
 
     <dependency>
       <groupId>com.jcraft</groupId>
@@ -84,6 +94,10 @@
       <artifactId>JavaEWAH</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>

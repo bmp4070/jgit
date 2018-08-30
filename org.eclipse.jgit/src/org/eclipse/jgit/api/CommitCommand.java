@@ -42,6 +42,7 @@
  */
 package org.eclipse.jgit.api;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -107,6 +108,8 @@ public class CommitCommand extends GitCommand<RevCommit> {
 	private PersonIdent author;
 
 	private PersonIdent committer;
+
+	private ByteArrayOutputStream gpgSig;
 
 	private String message;
 
@@ -213,6 +216,7 @@ public class CommitCommand extends GitCommand<RevCommit> {
 				}
 
 			if (!noVerify) {
+				System.out.println(message);
 				message = Hooks
 						.commitMsg(repo,
 								hookOutRedirect.get(CommitMsgHook.NAME))
@@ -230,8 +234,10 @@ public class CommitCommand extends GitCommand<RevCommit> {
 				// (unresolved conflicts)
 				ObjectId indexTreeId = index.writeTree(odi);
 
-				if (insertChangeId)
+				if (insertChangeId) {
+					System.out.println("insertint changeId");
 					insertChangeId(indexTreeId);
+				}
 
 				// Check for empty commits
 				if (headId != null && !allowEmpty.booleanValue()) {
@@ -247,6 +253,7 @@ public class CommitCommand extends GitCommand<RevCommit> {
 				CommitBuilder commit = new CommitBuilder();
 				commit.setCommitter(committer);
 				commit.setAuthor(author);
+				commit.setGpgSig(gpgSig);
 				commit.setMessage(message);
 
 				commit.setParentIds(parents);
@@ -260,6 +267,7 @@ public class CommitCommand extends GitCommand<RevCommit> {
 				if (!useDefaultReflogMessage) {
 					ru.setRefLogMessage(reflogComment, false);
 				} else {
+					System.out.println("in else");
 					String prefix = amend ? "commit (amend): " //$NON-NLS-1$
 							: parents.size() == 0 ? "commit (initial): " //$NON-NLS-1$
 									: "commit: "; //$NON-NLS-1$
@@ -280,6 +288,7 @@ public class CommitCommand extends GitCommand<RevCommit> {
 							|| isMergeDuringRebase(state)) {
 						// Commit was successful. Now delete the files
 						// used for merge commits
+						System.out.println("here also");
 						repo.writeMergeCommitMsg(null);
 						repo.writeMergeHeads(null);
 					} else if (state == RepositoryState.CHERRY_PICKING_RESOLVED) {
@@ -319,7 +328,7 @@ public class CommitCommand extends GitCommand<RevCommit> {
 		if (!parents.isEmpty())
 			firstParentId = parents.get(0);
 		ObjectId changeId = ChangeIdUtil.computeChangeId(treeId, firstParentId,
-				author, committer, message);
+				author, committer, gpgSig.toString(), message);
 		message = ChangeIdUtil.insertId(message, changeId);
 		if (changeId != null)
 			message = message.replaceAll("\nChange-Id: I" //$NON-NLS-1$
@@ -675,6 +684,33 @@ public class CommitCommand extends GitCommand<RevCommit> {
 	 */
 	public PersonIdent getCommitter() {
 		return committer;
+	}
+
+	/**
+	 * Sets the gpgSig for this {@code commit}. If no gpgSig is explicitly
+	 * specified because this method is never called or called with {@code null}
+	 * value then the gpgSig will not be set .
+	 *
+	 * @param gpgSig
+	 *            the gpgSig used for the {@code commit}
+	 * @return {@code this}
+	 * @since 5.1
+	 */
+	public CommitCommand setGpgSig(ByteArrayOutputStream gpgSig) {
+		checkCallable();
+		this.gpgSig = gpgSig;
+		return this;
+	}
+
+	/**
+	 * Get the gpgSig
+	 *
+	 * @return the gpgSig used for the {@code commit}. If no gpgSig was
+	 *         specified {@code null} is returned
+	 * @since 5.1
+	 */
+	public ByteArrayOutputStream getGpgSig() {
+		return gpgSig;
 	}
 
 	/**

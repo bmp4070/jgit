@@ -74,6 +74,8 @@ public class CommitBuilder {
 
 	private static final byte[] hcommitter = Constants.encodeASCII("committer"); //$NON-NLS-1$
 
+	private static final byte[] hgpgsig = Constants.encodeASCII("gpgsig"); //$NON-NLS-1$
+
 	private static final byte[] hencoding = Constants.encodeASCII("encoding"); //$NON-NLS-1$
 
 	private ObjectId treeId;
@@ -83,6 +85,8 @@ public class CommitBuilder {
 	private PersonIdent author;
 
 	private PersonIdent committer;
+
+	private ByteArrayOutputStream gpgSig;
 
 	private String message;
 
@@ -151,6 +155,26 @@ public class CommitBuilder {
 	 */
 	public void setCommitter(PersonIdent newCommitter) {
 		committer = newCommitter;
+	}
+
+	/**
+	 * Set the committer and commit time for this object
+	 *
+	 * @param newGpgSig
+	 * @since 5.1
+	 */
+	public void setGpgSig(ByteArrayOutputStream newGpgSig) {
+		gpgSig = newGpgSig;
+	}
+
+	/**
+	 * Get the gpgSig for this object.
+	 *
+	 * @return the gpgSig for this object.
+	 * @since 5.1
+	 */
+	public ByteArrayOutputStream getGpgSig() {
+		return gpgSig;
 	}
 
 	/**
@@ -314,6 +338,13 @@ public class CommitBuilder {
 			w.flush();
 			os.write('\n');
 
+			if (getGpgSig() != null) {
+				os.write(hgpgsig);
+				os.write(' ');
+				os.write(getGpgSig().toByteArray());
+				os.write('\n');
+			}
+
 			if (getEncoding() != Constants.CHARSET) {
 				os.write(hencoding);
 				os.write(' ');
@@ -374,6 +405,12 @@ public class CommitBuilder {
 		r.append("committer ");
 		r.append(committer != null ? committer.toString() : "NOT_SET");
 		r.append("\n");
+
+		if (gpgSig != null) {
+			r.append("gpgsig ");
+			r.append(gpgSig);
+			r.append("\n");
+		}
 
 		if (encoding != null && encoding != Constants.CHARSET) {
 			r.append("encoding ");
