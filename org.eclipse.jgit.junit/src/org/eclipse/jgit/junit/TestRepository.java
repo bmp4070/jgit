@@ -1025,6 +1025,8 @@ public class TestRepository<R extends Repository> {
 
 		private int tick = 1;
 
+        private String gpgSig = "";
+
 		private String message = "";
 
 		private RevCommit self;
@@ -1147,6 +1149,15 @@ public class TestRepository<R extends Repository> {
 
 		public PersonIdent author() {
 			return author;
+		}
+
+        public CommitBuilder gpgSig(String g) {
+			gpgSig = g;
+			return this;
+		}
+
+		public String gpgSig() {
+			return gpgSig;
 		}
 
 		public CommitBuilder committer(PersonIdent c) {

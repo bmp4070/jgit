@@ -48,6 +48,7 @@ import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.api.errors.NoMessageException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.pgm.internal.CLIText;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.util.RawParseUtils;
@@ -74,6 +75,10 @@ class Commit extends TextBuiltin {
 	@Option(name = "--amend", usage = "usage_CommitAmend")
 	private boolean amend;
 
+	@Option(name = "--passphrase", aliases = {
+			"-p" }, usage = "usage_CommitGPGPassphrase")
+	private String passphrase;
+
 	@Argument(metaVar = "metaVar_commitPaths", usage = "usage_CommitPaths")
 	private List<String> paths = new ArrayList<>();
 
@@ -82,11 +87,17 @@ class Commit extends TextBuiltin {
 	protected void run() throws NoHeadException, NoMessageException,
 			ConcurrentRefUpdateException, JGitInternalException, Exception {
 		try (Git git = new Git(db)) {
+			StoredConfig config = git.getRepository().getConfig();
 			CommitCommand commitCmd = git.commit();
 			if (author != null)
 				commitCmd.setAuthor(RawParseUtils.parsePersonIdent(author));
 			if (message != null)
 				commitCmd.setMessage(message);
+			if (config.getBoolean("commit", null, "gpgsign", false) != false) { //$NON-NLS-1$//$NON-NLS-2$
+				commitCmd.setSigningKey(
+						config.getString("user", null, "signingkey")); //$NON-NLS-1$ //$NON-NLS-2$
+				commitCmd.setPassphrase(passphrase);
+			}
 			if (only && paths.isEmpty())
 				throw die(CLIText.get().pathsRequired);
 			if (only && all)

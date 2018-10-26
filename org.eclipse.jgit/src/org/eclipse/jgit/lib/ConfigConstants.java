@@ -74,6 +74,13 @@ public final class ConfigConstants {
 	/** The "user" section */
 	public static final String CONFIG_USER_SECTION = "user";
 
+	/**
+	 * The "commit" section
+	 *
+	 * @since 5.2
+	 */
+    public static final String CONFIG_COMMIT_SECTION = "commit";
+
 	/** The "gerrit" section */
 	public static final String CONFIG_GERRIT_SECTION = "gerrit";
 
@@ -229,6 +236,13 @@ public final class ConfigConstants {
 
 	/** The "email" key */
 	public static final String CONFIG_KEY_EMAIL = "email";
+
+	/**
+	 * The "signingkey" key
+	 *
+	 * @since 5.2
+	 */
+	public static final String CONFIG_KEY_SIGNINGKEY = "signingkey";
 
 	/** The "false" key (used to configure {@link #CONFIG_KEY_AUTOSETUPMERGE} */
 	public static final String CONFIG_KEY_FALSE = "false";

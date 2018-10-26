@@ -199,6 +199,7 @@
 
     <jgit-last-release-version>4.11.0.201803080745-r</jgit-last-release-version>
     <jsch-version>0.1.54</jsch-version>
+    <bouncycastle-version>1.60</bouncycastle-version>
     <jzlib-version>1.1.1</jzlib-version>
     <javaewah-version>1.1.6</javaewah-version>
     <junit-version>4.12</junit-version>
@@ -609,6 +610,18 @@
         <artifactId>jsch</artifactId>
         <version>${jsch-version}</version>
       </dependency>
+
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcprov-jdk15on</artifactId>
+        <version>${bouncycastle-version}</version>
+      </dependency>
+
+     <dependency>
+       <groupId>org.bouncycastle</groupId>
+       <artifactId>bcpg-jdk15on</artifactId>
+       <version>${bouncycastle-version}</version>
+     </dependency>
 
       <dependency>
         <groupId>com.jcraft</groupId>

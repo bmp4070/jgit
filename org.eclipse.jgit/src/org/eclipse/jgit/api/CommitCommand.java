@@ -93,6 +93,7 @@ import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.TreeWalk.OperationType;
 import org.eclipse.jgit.util.ChangeIdUtil;
+import org.eclipse.jgit.util.PGPSign;
 
 /**
  * A class used to execute a {@code Commit} command. It has setters for all
@@ -107,6 +108,12 @@ public class CommitCommand extends GitCommand<RevCommit> {
 	private PersonIdent author;
 
 	private PersonIdent committer;
+
+	private String signingKey = null;
+
+	private byte[] gpgSignature;
+
+	private String passphrase = null;
 
 	private String message;
 
@@ -251,6 +258,9 @@ public class CommitCommand extends GitCommand<RevCommit> {
 
 				commit.setParentIds(parents);
 				commit.setTreeId(indexTreeId);
+				if (signingKey != null)
+					commit.setGpgSig(PGPSign.signPayload(commit.getPayload(),
+							signingKey, passphrase));
 				ObjectId commitId = odi.insert(commit);
 				odi.flush();
 
@@ -675,6 +685,65 @@ public class CommitCommand extends GitCommand<RevCommit> {
 	 */
 	public PersonIdent getCommitter() {
 		return committer;
+	}
+
+	/**
+	 * Sets the gpgSignature for this {@code commit}. If no gpgSignature is
+	 * explicitly specified because this method is never called or called with
+	 * {@code null} value then the gpgSignature will not be set .
+	 *
+	 * @param gpgSignature
+	 *            the gpgSig used for the {@code commit}
+	 * @return {@code this}
+	 * @since 5.2
+	 */
+	public CommitCommand setGpgSignature(byte[] gpgSignature) {
+		checkCallable();
+		this.gpgSignature = gpgSignature;
+		return this;
+	}
+
+	/**
+	 * Get the gpgSignature
+	 *
+	 * @return the gpgSignature used for the {@code commit}. If no gpgSignature
+	 *         was specified {@code null} is returned
+	 * @since 5.2
+	 */
+	public byte[] getGpgSignature() {
+		return gpgSignature;
+	}
+
+	/**
+	 * Sets the {@link #signingKey} option on this commit command.
+	 * <p>
+	 * If signingKey is set in git config, use it
+	 * </p>
+	 *
+	 * @param signingKey
+	 *            GPG key to sign the commit
+	 * @return {@code this}
+	 * @since 5.2
+	 */
+	public CommitCommand setSigningKey(String signingKey) {
+		this.signingKey = signingKey;
+		return this;
+	}
+
+	/**
+	 * Sets the {@link #passphrase} option on this commit command.
+	 * <p>
+	 * Use passphrase to extract private key and sign commit
+	 *
+	 * @param passphrase
+	 *            passphrase to extract GPG keys
+	 * @return {@code this}
+	 * @since 5.2
+	 */
+	public CommitCommand setPassphrase(String passphrase) {
+		this.passphrase = passphrase;
+		return this;
+
 	}
 
 	/**
