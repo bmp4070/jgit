@@ -28,7 +28,7 @@ public class GpgSignHandler extends StringOptionHandler {
 	 * </p>
 	 *
 	 * @param parser
-	 *            The parser to which this handler belongs to.
+	 *            The parser to which this handler belongs.
 	 * @param option
 	 *            The annotation.
 	 * @param setter
