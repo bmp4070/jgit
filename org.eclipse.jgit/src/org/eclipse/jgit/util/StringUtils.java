@@ -45,7 +45,6 @@ package org.eclipse.jgit.util;
 
 import java.text.MessageFormat;
 import java.util.Collection;
-import java.util.regex.Pattern;
 
 import org.eclipse.jgit.internal.JGitText;
 
@@ -334,21 +333,5 @@ public final class StringUtils {
 				buf[o++] = ch;
 		}
 		return new String(buf, 0, o);
-	}
-
-	/**
-	 * Replace LF with LF and single space.
-	 *
-	 * @param text
-	 *            A string with line breaks
-	 * @return in with line breaks and spaces in new lines
-	 * @since 5.2
-	 */
-	public static String replaceLFWithLFSpace(final String text) {
-		if (text == null) {
-			return text;
-		}
-		Pattern lf = Pattern.compile("\n"); //$NON-NLS-1$
-		return lf.matcher(text).replaceAll("\n "); //$NON-NLS-1$
 	}
 }

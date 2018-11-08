@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,12 +47,11 @@ public class PGPSign {
 
 	private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray(); //$NON-NLS-1$
 
-	@SuppressWarnings("nls")
 	private static final Path DEFAULT_KEYRING_PATH = Paths
-			.get(System.getProperty("user.home"), ".gnupg", "pubring.kbx");
+			.get(System.getProperty("user.home"), ".gnupg", "pubring.kbx"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
 	private static final Path DEFAULT_SECRET_KEY_DIR = Paths.get(
-			System.getProperty("user.home"), ".gnupg", "private-keys-v1.d");
+			System.getProperty("user.home"), ".gnupg", "private-keys-v1.d"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
 	private PGPSign() {
 		throw new IllegalAccessError("PGP Utility class"); //$NON-NLS-1$
@@ -91,7 +91,16 @@ public class PGPSign {
 
 	}
 
-	private static PGPSecretKey findSecretKey(InputStream secretStream,
+	/**
+	 * Find matching secretKey in key files associated to given public key
+	 *
+	 * @param secretStream
+	 * @param calculatorProvider
+	 * @param passphraseProvider
+	 * @param publicKey
+	 * @return secretKey
+	 */
+	public static PGPSecretKey findSecretKey(InputStream secretStream,
 			PGPDigestCalculatorProvider calculatorProvider,
 			PBEProtectionRemoverFactory passphraseProvider,
 			PGPPublicKey publicKey) {
@@ -182,7 +191,7 @@ public class PGPSign {
 				sigGenerator.update(input.getBytes(StandardCharsets.UTF_8));
 				sigGenerator.generate().encode(bOut);
 			}
-			gpgSignature = StringUtils.replaceLFWithLFSpace(buffer.toString())
+			gpgSignature = replaceLFWithLFSpace(buffer.toString())
 					.getBytes();
 			System.out.println(new String(gpgSignature));
 			return gpgSignature;
@@ -194,6 +203,8 @@ public class PGPSign {
 	}
 
 	/**
+	 * Return hex string for bytes provided
+	 *
 	 * @param bytes
 	 * @return hexString
 	 */
@@ -205,6 +216,25 @@ public class PGPSign {
 			hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
 		}
 		return new String(hexChars);
+	}
+
+	/**
+	 * Format BC provided signature according to GIT signature-format
+	 * <p>
+	 * Format doc here:
+	 * https://github.com/git/git/blob/master/Documentation/technical/signature-format.txt#L79,L89
+	 * </p>
+	 *
+	 * @param text
+	 *            A string with line breaks
+	 * @return in with line breaks and spaces in new lines
+	 */
+	public static String replaceLFWithLFSpace(final String text) {
+		if (text == null) {
+			return text;
+		}
+		Pattern lf = Pattern.compile("\n"); //$NON-NLS-1$
+		return lf.matcher(text).replaceAll("\n "); //$NON-NLS-1$
 	}
 
 }
