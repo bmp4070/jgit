@@ -104,7 +104,7 @@ import org.eclipse.jgit.util.PGPSign;
  *      href="http://www.kernel.org/pub/software/scm/git/docs/git-commit.html"
  *      >Git documentation about Commit</a>
  */
-public class CommitCommand extends GitCommand<RevCommit> {
+public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 	private PersonIdent author;
 
 	private PersonIdent committer;
