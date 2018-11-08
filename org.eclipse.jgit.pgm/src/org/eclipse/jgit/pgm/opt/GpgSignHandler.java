@@ -49,9 +49,11 @@ public class GpgSignHandler extends StringOptionHandler {
 				setter.addValue("default"); //$NON-NLS-1$
 			} else {
 				setter.addValue(keyID);
+				return 1;
 			}
 		}
 		return 0;
+
 	}
 
 }

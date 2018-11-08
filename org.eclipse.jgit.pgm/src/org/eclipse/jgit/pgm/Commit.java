@@ -79,7 +79,7 @@ class Commit extends TextBuiltin {
 
 	@Option(name = "--gpg-sign", aliases = { "-S" }, forbids = {
 			"--no-gpg-sign" }, handler = GpgSignHandler.class)
-	private String gpgSigningKeyId; // $NON-NLS-1$
+	private String gpgSigningKeyId = "default"; // $NON-NLS-1$ //$NON-NLS-1$
 
 	@Option(name = "--no-gpg-sign", forbids = { "--gpg-sign" })
 	private boolean signCommit = true;
