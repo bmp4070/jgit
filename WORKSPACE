@@ -9,9 +9,9 @@ http_archive(
     urls = ["https://github.com/bazelbuild/bazel-skylib/archive/2169ae1c374aab4a09aa90e65efe1a3aad4e279b.tar.gz"],
 )
 
-load("@bazel_skylib//:lib.bzl", "versions")
+load("@bazel_skylib//lib:versions.bzl", "versions")
 
-versions.check(minimum_bazel_version = "0.17.1")
+versions.check(minimum_bazel_version = "0.19.0")
 
 load("//tools:bazlets.bzl", "load_bazlets")
 
@@ -50,6 +50,18 @@ maven_jar(
     name = "httpcore",
     artifact = "org.apache.httpcomponents:httpcore:4.4.9",
     sha1 = "a86ce739e5a7175b4b234c290a00a5fdb80957a0",
+)
+
+maven_jar(
+    name = "sshd-core",
+    artifact = "org.apache.sshd:sshd-core:2.0.0",
+    sha1 = "f4275079a2463cfd2bf1548a80e1683288a8e86b",
+)
+
+maven_jar(
+    name = "sshd-sftp",
+    artifact = "org.apache.sshd:sshd-sftp:2.0.0",
+    sha1 = "a12d64dc2d5d23271a4dc58075e55f9c64a68494",
 )
 
 maven_jar(

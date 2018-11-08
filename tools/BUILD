@@ -6,7 +6,7 @@ load(
 
 default_java_toolchain(
     name = "error_prone_warnings_toolchain",
-    bootclasspath = ["@bazel_tools//tools/jdk:platformclasspath9.jar"],
+    bootclasspath = ["@bazel_tools//tools/jdk:platformclasspath.jar"],
     jvm_opts = JDK9_JVM_OPTS,
     package_configuration = [
         ":error_prone",
@@ -29,7 +29,7 @@ java_package_configuration(
         "-Xep:BadComparable:WARN",
         "-Xep:BoxedPrimitiveConstructor:ERROR",
         "-Xep:CannotMockFinalClass:WARN",
-        "-Xep:ClassCanBeStatic:WARN",
+        "-Xep:ClassCanBeStatic:ERROR",
         "-Xep:ClassNewInstance:WARN",
         "-Xep:DefaultCharset:ERROR",
         "-Xep:DoubleCheckedLocking:WARN",
@@ -85,23 +85,23 @@ java_package_configuration(
 package_group(
     name = "error_prone_packages",
     packages = [
-        "//org.eclipse.jgit/...",
-        "//org.eclipse.jgit.ant/...",
         "//org.eclipse.jgit.ant.test/...",
+        "//org.eclipse.jgit.ant/...",
         "//org.eclipse.jgit.archive/...",
         "//org.eclipse.jgit.http.apache/...",
         "//org.eclipse.jgit.http.server/...",
         "//org.eclipse.jgit.http.test/...",
-        "//org.eclipse.jgit.junit/...",
         "//org.eclipse.jgit.junit.http/...",
-        "//org.eclipse.jgit.lfs/...",
-        "//org.eclipse.jgit.lfs.server/...",
+        "//org.eclipse.jgit.junit/...",
         "//org.eclipse.jgit.lfs.server.test/...",
+        "//org.eclipse.jgit.lfs.server/...",
         "//org.eclipse.jgit.lfs.test/...",
+        "//org.eclipse.jgit.lfs/...",
         "//org.eclipse.jgit.packaging/...",
-        "//org.eclipse.jgit.pgm/...",
         "//org.eclipse.jgit.pgm.test/...",
+        "//org.eclipse.jgit.pgm/...",
         "//org.eclipse.jgit.test/...",
         "//org.eclipse.jgit.ui/...",
+        "//org.eclipse.jgit/...",
     ],
 )
