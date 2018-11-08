@@ -710,7 +710,7 @@ public final class Constants {
 	/**
 	 * Well-known object ID for the empty tree.
 	 *
-	 * @since 5.2
+	 * @since 5.1
 	 */
 	public static final ObjectId EMPTY_TREE_ID = ObjectId
 			.fromString("4b825dc642cb6eb9a060e54bf8d69288fbee4904");
