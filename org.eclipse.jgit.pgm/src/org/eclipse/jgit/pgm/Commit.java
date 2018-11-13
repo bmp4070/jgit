@@ -46,7 +46,6 @@ import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.api.errors.NoMessageException;
-import org.eclipse.jgit.awtui.AwtCredentialsProvider;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.GpgConfig;
 import org.eclipse.jgit.lib.Ref;
@@ -79,7 +78,7 @@ class Commit extends TextBuiltin {
 
 	@Option(name = "--gpg-sign", aliases = { "-S" }, forbids = {
 			"--no-gpg-sign" }, handler = GpgSignHandler.class)
-	private String gpgSigningKeyId = "default"; // $NON-NLS-1$ //$NON-NLS-1$
+	private String gpgSigningKeyId;
 
 	@Option(name = "--no-gpg-sign", forbids = { "--gpg-sign" })
 	private boolean signCommit = true;
@@ -99,16 +98,16 @@ class Commit extends TextBuiltin {
 			if (message != null)
 				commitCmd.setMessage(message);
 			// when --gpg-sign and --no-gpg-sign are not provided use GPGConfig
-			if (gpgSigningKeyId.equals("default") && signCommit) //$NON-NLS-1$
+			if (gpgSigningKeyId == null && signCommit)
 				signCommit = config.isSignCommits();
 			if (signCommit) {
 				gpgSigningKeyId = (gpgSigningKeyId != null) ? gpgSigningKeyId
 						: config.getSigningKey();
 				if (gpgSigningKeyId == null)
 					throw die(CLIText.get().gpgSigningKeyIdRequired);
-				commitCmd.setSigningKey(gpgSigningKeyId);
-				commitCmd.setCredentialsProvider(
-						new AwtCredentialsProvider());
+				commitCmd.setGpgSigningKeyId(gpgSigningKeyId);
+				commitCmd.setPassphrase();
+
 			}
 			if (only && paths.isEmpty())
 				throw die(CLIText.get().pathsRequired);

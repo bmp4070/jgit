@@ -46,7 +46,7 @@ public class GpgSignHandler extends StringOptionHandler {
 		if ("--gpg-sign".equals(alias) || "-S".equals(alias)) { //$NON-NLS-1$ //$NON-NLS-2$
 			String keyID = params.getParameter(0);
 			if (keyID == null || keyID.startsWith("-")) { //$NON-NLS-1$
-				setter.addValue("default"); //$NON-NLS-1$
+				setter.addValue(null);
 			} else {
 				setter.addValue(keyID);
 				return 1;

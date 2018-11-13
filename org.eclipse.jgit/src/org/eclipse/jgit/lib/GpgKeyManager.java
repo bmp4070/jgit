@@ -1,4 +1,4 @@
-package org.eclipse.jgit.util;
+package org.eclipse.jgit.lib;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -22,6 +22,7 @@ import org.bouncycastle.gpg.keybox.KeyBox;
 import org.bouncycastle.gpg.keybox.KeyInformation;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openpgp.PGPException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
@@ -43,7 +44,7 @@ import org.eclipse.jgit.annotations.NonNull;
  *
  */
 @SuppressWarnings("restriction")
-public class PGPSign {
+public class GpgKeyManager {
 
 	private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray(); //$NON-NLS-1$
 
@@ -53,8 +54,8 @@ public class PGPSign {
 	private static final Path DEFAULT_SECRET_KEY_DIR = Paths.get(
 			System.getProperty("user.home"), ".gnupg", "private-keys-v1.d"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
-	private PGPSign() {
-		throw new IllegalAccessError("PGP Utility class"); //$NON-NLS-1$
+	private GpgKeyManager() {
+		throw new IllegalAccessError("GPG Utility class"); //$NON-NLS-1$
 	}
 
 	private static PGPSecretKey findSecretKey(PGPPublicKey publicKey,
@@ -88,7 +89,6 @@ public class PGPSign {
 			e.printStackTrace();
 		}
 		return null;
-
 	}
 
 	/**
@@ -99,22 +99,19 @@ public class PGPSign {
 	 * @param passphraseProvider
 	 * @param publicKey
 	 * @return secretKey
+	 * @throws IOException
 	 */
 	public static PGPSecretKey findSecretKey(InputStream secretStream,
 			PGPDigestCalculatorProvider calculatorProvider,
 			PBEProtectionRemoverFactory passphraseProvider,
-			PGPPublicKey publicKey) {
+			PGPPublicKey publicKey) throws IOException {
 		try {
 			return new SExprParser(calculatorProvider).parseSecretKey(
 					secretStream, passphraseProvider, publicKey);
-		} catch (PGPException e) {
+		} catch (PGPException | ClassCastException e) {
 			// return null when secret key does not match public key
 			return null;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
-		return null;
 	}
 
 	/**
@@ -127,20 +124,17 @@ public class PGPSign {
 	 */
 	public static PGPPublicKey findPublicKey(InputStream in, String signingKey)
 			throws IOException {
-		KeyBox keyBox = new KeyBox(in,
-				new JcaKeyFingerprintCalculator());
-		Iterator<KeyBlob> keyBlobs = keyBox.getKeyBlobs().listIterator();
-		System.out.println(keyBlobs.hasNext());
+		KeyBox keyBox = new KeyBox(in, new JcaKeyFingerprintCalculator());
 		PGPPublicKeyRing keyRing = null;
 		PGPPublicKey publicKey = null;
+		Iterator<KeyBlob> keyBlobs = keyBox.getKeyBlobs().listIterator();
 		while (keyBlobs.hasNext() && publicKey == null) {
 			KeyBlob keyBlob = keyBlobs.next();
 			Iterator<KeyInformation> keyInformations = keyBlob
 					.getKeyInformation().listIterator();
 			while (keyInformations.hasNext()) {
 				KeyInformation keyInfo = keyInformations.next();
-				System.out.println(BytesToHex(keyInfo.getKeyID()));
-				if (signingKey.equals(BytesToHex(keyInfo.getKeyID()))) {
+				if (signingKey.equals(bytesToHex(keyInfo.getKeyID()))) {
 					keyRing = new PGPPublicKeyRing(keyBlob.getKeyBytes(),
 							new JcaKeyFingerprintCalculator());
 					publicKey = keyRing.getPublicKey();
@@ -166,14 +160,17 @@ public class PGPSign {
 	 * @throws IOException
 	 */
 	public static byte[] signPayload(String input, String signingkey,
-			String passphrase)
-			throws IOException {
+			String passphrase) throws IOException {
 		@NonNull
 		final BouncyCastleProvider provider = new BouncyCastleProvider();
 		PGPPublicKey publicKey;
 		PGPSecretKey secretKey;
 		try {
 			publicKey = findPublicKey(signingkey);
+			if (publicKey == null)
+				throw new PGPException(
+						"gpg failed to find public-key which matches provided keyID: " //$NON-NLS-1$
+								+ signingkey);
 			secretKey = findSecretKey(publicKey, passphrase);
 			PGPPrivateKey privateKey;
 			privateKey = secretKey.extractPrivateKey(
@@ -191,15 +188,12 @@ public class PGPSign {
 				sigGenerator.update(input.getBytes(StandardCharsets.UTF_8));
 				sigGenerator.generate().encode(bOut);
 			}
-			gpgSignature = replaceLFWithLFSpace(buffer.toString())
-					.getBytes();
+			gpgSignature = replaceLFWithLFSpace(buffer.toString()).getBytes();
 			System.out.println(new String(gpgSignature));
 			return gpgSignature;
 		} catch (PGPException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new JGitInternalException(e.getMessage(), e);
 		}
-		return null;
 	}
 
 	/**
@@ -208,7 +202,7 @@ public class PGPSign {
 	 * @param bytes
 	 * @return hexString
 	 */
-	public static String BytesToHex(byte[] bytes) {
+	public static String bytesToHex(byte[] bytes) {
 		char[] hexChars = new char[bytes.length * 2];
 		for (int j = 0; j < bytes.length; j++) {
 			int v = bytes[j] & 0xFF;
@@ -236,5 +230,14 @@ public class PGPSign {
 		Pattern lf = Pattern.compile("\n"); //$NON-NLS-1$
 		return lf.matcher(text).replaceAll("\n "); //$NON-NLS-1$
 	}
+
+	/**
+	 * @param args
+	 */
+	/*
+	 * public static void main(String[] args) { try {
+	 * signPayload("this is version.txt", "716B1D0DAD2CCB0A", "tallChoalla@9");
+	 * } catch (IOException e) { // TODO Auto-generated e.printStackTrace(); } }
+	 */
 
 }
