@@ -27,8 +27,11 @@ import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureGenerator;
+import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.operator.PBEProtectionRemoverFactory;
 import org.bouncycastle.openpgp.operator.PGPDigestCalculatorProvider;
 import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
@@ -48,21 +51,24 @@ public class GpgKeyManager {
 
 	private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray(); //$NON-NLS-1$
 
-	private static final Path DEFAULT_KEYRING_PATH = Paths
+	private static final Path DEFAULT_KEYBOX_PATH = Paths
 			.get(System.getProperty("user.home"), ".gnupg", "pubring.kbx"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
 	private static final Path DEFAULT_SECRET_KEY_DIR = Paths.get(
 			System.getProperty("user.home"), ".gnupg", "private-keys-v1.d"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+
+	private static final Path DEFAULT_PGP_SECRET_KEY_PATH = Paths
+			.get(System.getProperty("user.home"), ".gnupg", "secring.gpg"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
 	private GpgKeyManager() {
 		throw new IllegalAccessError("GPG Utility class"); //$NON-NLS-1$
 	}
 
 	private static PGPSecretKey findSecretKey(PGPPublicKey publicKey,
-			String passphrase) {
+			String passphrase) throws PGPException {
 
 		PGPDigestCalculatorProvider calculatorProvider;
-		PGPSecretKey secretKey;
+		PGPSecretKey secretKey = null;
 		try {
 			calculatorProvider = new JcaPGPDigestCalculatorProviderBuilder()
 					.build();
@@ -75,20 +81,21 @@ public class GpgKeyManager {
 							new BufferedInputStream(
 									Files.newInputStream(keyFile)),
 							calculatorProvider, passphraseProvider, publicKey);
-					if (secretKey != null) {
-						return secretKey;
-					}
-
+					break;
 				}
+				if (secretKey == null)
+					throw new PGPException(
+							"gpg failed to find associated secret key for public key: " //$NON-NLS-1$
+									+ Long.toHexString(publicKey.getKeyID()));
+				return secretKey;
 			}
-		} catch (PGPException e) {
+		} catch (PGPException | IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new PGPException(
+					"gpg failed to parse secret key file under directory " //$NON-NLS-1$
+							+ DEFAULT_SECRET_KEY_DIR.toAbsolutePath()
+									.toString());
 		}
-		return null;
 	}
 
 	/**
@@ -115,6 +122,94 @@ public class GpgKeyManager {
 	}
 
 	/**
+	 * <p>
+	 * Return the first suitable key for signing in the key ring collection. For
+	 * this case we only expect there to be one key available for signing.
+	 * </p>
+	 *
+	 * @param signingkey
+	 * @param secretStream
+	 *
+	 * @return the first suitable PGP secret key found for signing
+	 * @throws IOException
+	 *             on I/O related errors
+	 * @throws PGPException
+	 *             on signing errors
+	 */
+	private static PGPSecretKey findSecretKey(String signingkey,
+			InputStream secretStream) throws IOException, PGPException {
+		PGPSecretKeyRingCollection pgpSec = new PGPSecretKeyRingCollection(
+				PGPUtil.getDecoderStream(secretStream),
+				new JcaKeyFingerprintCalculator());
+		PGPSecretKey secretKey = null;
+		Iterator<PGPSecretKeyRing> keyrings = pgpSec.getKeyRings();
+		while (keyrings.hasNext() && secretKey == null) {
+			PGPSecretKeyRing keyRing = keyrings.next();
+			PGPSecretKey key = null;
+			Iterator<PGPSecretKey> keyIter = keyRing.getSecretKeys();
+			while (keyIter.hasNext()) {
+				key = keyIter.next();
+				String fingerprint = bytesToHex(
+						key.getPublicKey().getFingerprint());
+				if (fingerprint.endsWith(signingkey)) {
+					secretKey = key;
+					break;
+				}
+			}
+		}
+		if (secretKey != null) {
+			return secretKey;
+		} else {
+			throw new PGPException(
+					"gpg failed to find secret-key which matches provided keyID: " //$NON-NLS-1$
+							+ signingkey);
+		}
+	}
+
+	private static PGPSecretKey findSecretKey(String signingkey,
+			String passphrase) throws IOException, PGPException {
+		return findSecretKey(signingkey, passphrase, null);
+	}
+
+	/**
+	 * Use pubring.kbx when available, if not fallback to secring.gpg or secret
+	 * key path provided to parse and return secret key
+	 *
+	 * @param signingkey
+	 * @param passphrase
+	 * @param gpgSecretKeyPath
+	 * @return secretKey
+	 * @throws IOException
+	 * @throws PGPException
+	 */
+	public static PGPSecretKey findSecretKey(String signingkey,
+			String passphrase, Path gpgSecretKeyPath)
+			throws IOException, PGPException {
+		PGPSecretKey secretKey = null;
+		if (gpgSecretKeyPath != null) {
+			secretKey = findSecretKey(signingkey, new BufferedInputStream(
+					Files.newInputStream(gpgSecretKeyPath)));
+		}
+		else if (Files.exists(DEFAULT_KEYBOX_PATH)) {
+			InputStream keyStream = new BufferedInputStream(
+					Files.newInputStream(DEFAULT_KEYBOX_PATH));
+			PGPPublicKey publicKey = findPublicKey(signingkey, keyStream);
+			if (publicKey == null)
+				throw new PGPException(
+						"gpg failed to find public-key which matches provided keyID: " //$NON-NLS-1$
+								+ signingkey);
+			secretKey = findSecretKey(publicKey, passphrase);
+		} else if (Files.exists(DEFAULT_PGP_SECRET_KEY_PATH)) {
+			secretKey = findSecretKey(signingkey, new BufferedInputStream(
+					Files.newInputStream(DEFAULT_PGP_SECRET_KEY_PATH)));
+		} else {
+			throw new PGPException(
+					"gpg failed to find pubring.kbx or secring.gpg files"); //$NON-NLS-1$
+		}
+		return secretKey;
+	}
+
+	/**
 	 * Finds publicKey associated with keyID provided from input stream
 	 *
 	 * @param in
@@ -122,7 +217,7 @@ public class GpgKeyManager {
 	 * @return publicKey
 	 * @throws IOException
 	 */
-	public static PGPPublicKey findPublicKey(InputStream in, String signingKey)
+	public static PGPPublicKey findPublicKey(String signingKey, InputStream in)
 			throws IOException {
 		KeyBox keyBox = new KeyBox(in, new JcaKeyFingerprintCalculator());
 		PGPPublicKeyRing keyRing = null;
@@ -145,53 +240,43 @@ public class GpgKeyManager {
 		return publicKey;
 	}
 
-	private static PGPPublicKey findPublicKey(String signingKey)
-			throws IOException {
-		InputStream keyStream = new BufferedInputStream(
-				Files.newInputStream(DEFAULT_KEYRING_PATH));
-		return findPublicKey(keyStream, signingKey);
-	}
-
 	/**
+	 * Using singingKey and passphrase obtain key pair and using signature
+	 * generator generate signature for the input provided.
+	 *
 	 * @param input
 	 * @param signingkey
 	 * @param passphrase
-	 * @return buffer
-	 * @throws IOException
+	 * @return gpgSignature
 	 */
 	public static byte[] signPayload(String input, String signingkey,
-			String passphrase) throws IOException {
+			String passphrase) {
 		@NonNull
 		final BouncyCastleProvider provider = new BouncyCastleProvider();
-		PGPPublicKey publicKey;
 		PGPSecretKey secretKey;
 		try {
-			publicKey = findPublicKey(signingkey);
-			if (publicKey == null)
-				throw new PGPException(
-						"gpg failed to find public-key which matches provided keyID: " //$NON-NLS-1$
-								+ signingkey);
-			secretKey = findSecretKey(publicKey, passphrase);
-			PGPPrivateKey privateKey;
-			privateKey = secretKey.extractPrivateKey(
+			secretKey = findSecretKey(signingkey, passphrase);
+			PGPPrivateKey privateKey = secretKey.extractPrivateKey(
 					new JcePBESecretKeyDecryptorBuilder().setProvider(provider)
 							.build(passphrase.toCharArray()));
-			PGPSignatureGenerator sigGenerator = new PGPSignatureGenerator(
-					new JcaPGPContentSignerBuilder(publicKey.getAlgorithm(),
+			PGPSignatureGenerator signatureGenerator = new PGPSignatureGenerator(
+					new JcaPGPContentSignerBuilder(
+							secretKey.getPublicKey().getAlgorithm(),
 							HashAlgorithmTags.SHA256).setProvider(provider));
-			sigGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
+			signatureGenerator.init(PGPSignature.BINARY_DOCUMENT, privateKey);
 			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 			byte[] gpgSignature = null;
 
 			try (ArmoredOutputStream aOut = new ArmoredOutputStream(buffer)) {
 				BCPGOutputStream bOut = new BCPGOutputStream(aOut);
-				sigGenerator.update(input.getBytes(StandardCharsets.UTF_8));
-				sigGenerator.generate().encode(bOut);
+				signatureGenerator
+						.update(input.getBytes(StandardCharsets.UTF_8));
+				signatureGenerator.generate().encode(bOut);
+				gpgSignature = replaceLFWithLFSpace(buffer.toString())
+						.getBytes();
 			}
-			gpgSignature = replaceLFWithLFSpace(buffer.toString()).getBytes();
-			System.out.println(new String(gpgSignature));
 			return gpgSignature;
-		} catch (PGPException e) {
+		} catch (PGPException | IOException e) {
 			throw new JGitInternalException(e.getMessage(), e);
 		}
 	}
@@ -221,7 +306,7 @@ public class GpgKeyManager {
 	 *
 	 * @param text
 	 *            A string with line breaks
-	 * @return in with line breaks and spaces in new lines
+	 * @return text with line breaks and a space after new line
 	 */
 	public static String replaceLFWithLFSpace(final String text) {
 		if (text == null) {
