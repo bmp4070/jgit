@@ -124,7 +124,7 @@ public class GpgKeyManagerTest {
 	}
 
 	@Test
-	public void isNullWhenSingingKeyNotKeyBox() throws IOException {
+	public void isNullWhenSigningKeyNotKeyBox() throws IOException {
 		String faultyGpgKeyId = "54EF958B45D43675";
 		PGPPublicKey publicKey = GpgKeyManager.findPublicKey(
 				faultyGpgKeyId, new ByteArrayInputStream(KEYBOX));
@@ -146,7 +146,7 @@ public class GpgKeyManagerTest {
 	}
 
 	@Test
-	public void isNullWhenSecretKeyNotinKeyFile() throws Exception {
+	public void isNullWhenSecretKeyNotInKeyFile() throws Exception {
 		PGPPublicKey publicKey = GpgKeyManager.findPublicKey(
 				EXPECTED_GPG_KEYID, new ByteArrayInputStream(KEYBOX));
 		assertNull(GpgKeyManager.findSecretKey(

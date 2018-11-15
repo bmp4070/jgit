@@ -241,7 +241,7 @@ public class GpgKeyManager {
 	}
 
 	/**
-	 * Using singingKey and passphrase obtain key pair and using signature
+	 * Using signingKey and passphrase obtain key pair and using signature
 	 * generator generate signature for the input provided.
 	 *
 	 * @param input
@@ -309,20 +309,8 @@ public class GpgKeyManager {
 	 * @return text with line breaks and a space after new line
 	 */
 	public static String replaceLFWithLFSpace(final String text) {
-		if (text == null) {
-			return text;
-		}
 		Pattern lf = Pattern.compile("\n"); //$NON-NLS-1$
 		return lf.matcher(text).replaceAll("\n "); //$NON-NLS-1$
 	}
-
-	/**
-	 * @param args
-	 */
-	/*
-	 * public static void main(String[] args) { try {
-	 * signPayload("this is version.txt", "716B1D0DAD2CCB0A", "tallChoalla@9");
-	 * } catch (IOException e) { // TODO Auto-generated e.printStackTrace(); } }
-	 */
 
 }
