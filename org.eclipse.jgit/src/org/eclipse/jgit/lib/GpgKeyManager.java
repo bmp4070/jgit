@@ -90,7 +90,6 @@ public class GpgKeyManager {
 				return secretKey;
 			}
 		} catch (PGPException | IOException e) {
-			// TODO Auto-generated catch block
 			throw new PGPException(
 					"gpg failed to parse secret key file under directory " //$NON-NLS-1$
 							+ DEFAULT_SECRET_KEY_DIR.toAbsolutePath()
