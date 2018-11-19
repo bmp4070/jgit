@@ -1,12 +1,57 @@
+/*
+ * Copyright (C) 2018, Salesforce.
+ * and other copyright owners as documented in the project's IP log.
+ *
+ * This program and the accompanying materials are made available
+ * under the terms of the Eclipse Distribution License v1.0 which
+ * accompanies this distribution, is reproduced below, and is
+ * available at http://www.eclipse.org/org/documents/edl-v10.php
+ *
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or
+ * without modification, are permitted provided that the following
+ * conditions are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ *
+ * - Redistributions in binary form must reproduce the above
+ *   copyright notice, this list of conditions and the following
+ *   disclaimer in the documentation and/or other materials provided
+ *   with the distribution.
+ *
+ * - Neither the name of the Eclipse Foundation, Inc. nor the
+ *   names of its contributors may be used to endorse or promote
+ *   products derived from this software without specific prior
+ *   written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+ * CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+ * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 package org.eclipse.jgit.lib;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+
+import org.bouncycastle.openpgp.PGPException;
 
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
@@ -18,7 +63,7 @@ import org.junit.Test;
 
 public class GpgKeyManagerTest {
 
-	byte[] KEYBOX = Base64.decode(
+	byte[] keybox = Base64.decode(
 			"AAAAIAEBAAJLQlhmAAAAAFvrMlJb6zJSAAAAAAAAAAAAAAWdAgEAAAAAAH4AAAULAAIAHJ"
 					+ "ilYnoKh0 O9EUcexaX+6Axg/6TZAAAAIAAAAACqarw+GVmJzlUrKSDiQ/a7cjE7HAAAADw"
 					+ "AAAAAAAAAAQAMAAAB ngAAACcAAAAAAAIABAAAAAAAAAAAAAAAAAAAAAAAAAAAW+syjQAA"
@@ -49,7 +94,7 @@ public class GpgKeyManagerTest {
 					+ "RSc4L 9WvYMk5qw4ZXX5N+X2bakutPT4T9SoYhyDTJEVWiWntWKlZEabAGAABncGcA7hob"
 					+ "G1HVoRVCz3HP1R zd7lygGOI=");
 
-	byte[] VALID_SECRET_KEYRING = Base64.decode(
+	byte[] valid_secret_keyring = Base64.decode(
 			"KDIxOnByb3RlY3RlZC1wcml2YXRlLWtleSgzOnJzYSgxOm4yNTc6AMMTl9Zi"
 					+ "poEiKvpHNTNdqNjzEKG5lz99FHTUmLRCQk8mVMYmD6GIjRBbqJ/ggWMqButr"
 					+ "uxe9LZOO/33S6lZUXDEPhTOFTvFCleLZEVvGRM1FHxYNRG7UfBxi2M6PhBAn"
@@ -77,7 +122,7 @@ public class GpgKeyManagerTest {
 					+ "e9h3vYe4dR/1Xaj/YFWaQ4HAQF3MV55Ga2lbszjo3GXRZMaOVswi6ikoMTI6"
 					+ "cHJvdGVjdGVkLWF0MTU6MjAxODExMTNUMjAyMjM2KSkp");
 
-	byte[] INVALID_SECRET_KEYRING = Base64.decode(
+	byte[] invalid_secret_keyring = Base64.decode(
 			"KDIxOnByb3RlY3RlZC1wcml2YXRlLWtleSgzOnJzYSgxOm4yNTc6AMMTl9Zi"
 					+ "poEiKvpHNTNdqNjzEKG5lz99FHTUmLRCQk8mVMYmD6GIjRBbqJ/ggWMqButr"
 					+ "uxe9LZOO/33S6lZUXDEPhTOFTvFCleLZEVvGRM1FHxYNRG7UfBxi2M6PhBAn"
@@ -105,11 +150,25 @@ public class GpgKeyManagerTest {
 					+ "e9h3vYe4dR/1Xaj/YFWaQ4HAQF3MV55Ga2lbszjo3GXRZMaOVswi6ikoMTI6"
 					+ "cHJvdGVjdGVkLWF0MTU6MjAxODExMTNUMjAyMjM2KSkp");
 
+	byte[] EXPECTED_COMMIT_BUFFER = Base64.decode(
+			"LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KIFZlcnNpb246IEJDUEcg"
+					+ "djEuNjAKIAogaVFFY0JBQUJDQUFHQlFKYjhvS1pBQW9KRUtYKzZBeGcvNlRa"
+					+ "Vm1JSC9ScGRKaklsUUIyenp3OE9qQXh0STg1eQogaTJadVh3RFdrbnNqSDFL"
+					+ "NkpVMmEwQWZ3SFhCYnhEd0xYaVdibHZVaVZJV0txK1RIYWFEQnZjUkIxOFl4"
+					+ "THMzYQogbk9JTitjQUFFQjBXWnVXRm01cVJzekFiYWs2MGlGc3V0VE9Bdlpx"
+					+ "NkFsR3BoY0t1ZGV0TDF5bFE0cGlmUUZ0VgogNU5iU1VVUkRsbVBLeUdPc1g2"
+					+ "UURGdDB0ZFBZT1dYdzJpTzBTUlpMQ3N5TDlsRW4rakdoY3F0OUhQKzZVdDhW"
+					+ "TwogUlJLOG83MEZtZEdUcHNGaDF5aHRmK1pkempDU1BWMlRQS0kxdldFckpo"
+					+ "d09pZ3JkWEZZcjN4QWJuYTc5UGdhbwogamF0b2lrS283SmlYZGFPVk9oZmR3"
+					+ "N0VUOThZaHBlWVBpaVJKdElUNzhaRG9YcXl4alhBTko2ZWRWd2RM");
+
 	private final String EXPECTED_GPG_KEYID = "A5FEE80C60FFA4D9";
 
 	private final String PASSPHRASE = "JGitAuth1";
 
 	private final String FAKE_GPG_SECRET_FILE = "fake-secring.gpg";
+
+	private final String INVALID_GPG_SECRET_FILE = "invalid-secring.gpg";
 
 	private static Path pathOf(String name) {
 		return JGitTestUtil.getTestResourceFile(name).toPath();
@@ -118,7 +177,7 @@ public class GpgKeyManagerTest {
 	@Test
 	public void testFindPublicKeyFromKeyBox() throws IOException {
 		PGPPublicKey publicKey = GpgKeyManager.findPublicKey(
-				EXPECTED_GPG_KEYID, new ByteArrayInputStream(KEYBOX));
+				EXPECTED_GPG_KEYID, new ByteArrayInputStream(keybox));
 		assertEquals(EXPECTED_GPG_KEYID,
 				Long.toHexString(publicKey.getKeyID()).toUpperCase());
 	}
@@ -127,16 +186,16 @@ public class GpgKeyManagerTest {
 	public void isNullWhenSigningKeyNotKeyBox() throws IOException {
 		String faultyGpgKeyId = "54EF958B45D43675";
 		PGPPublicKey publicKey = GpgKeyManager.findPublicKey(
-				faultyGpgKeyId, new ByteArrayInputStream(KEYBOX));
+				faultyGpgKeyId, new ByteArrayInputStream(keybox));
 		assertNull(publicKey);
 	}
 
 	@Test
 	public void testFindSecretKeyFromKeyFile() throws Exception {
 		PGPPublicKey publicKey = GpgKeyManager.findPublicKey(
-				EXPECTED_GPG_KEYID, new ByteArrayInputStream(KEYBOX));
+				EXPECTED_GPG_KEYID, new ByteArrayInputStream(keybox));
 		PGPSecretKey secretKey = GpgKeyManager.findSecretKey(
-				new ByteArrayInputStream(VALID_SECRET_KEYRING),
+				new ByteArrayInputStream(valid_secret_keyring),
 				new JcaPGPDigestCalculatorProviderBuilder()
 					.build(), new JcePBEProtectionRemoverFactory(
 						PASSPHRASE.toCharArray()),
@@ -148,9 +207,9 @@ public class GpgKeyManagerTest {
 	@Test
 	public void isNullWhenSecretKeyNotInKeyFile() throws Exception {
 		PGPPublicKey publicKey = GpgKeyManager.findPublicKey(
-				EXPECTED_GPG_KEYID, new ByteArrayInputStream(KEYBOX));
+				EXPECTED_GPG_KEYID, new ByteArrayInputStream(keybox));
 		assertNull(GpgKeyManager.findSecretKey(
-				new ByteArrayInputStream(INVALID_SECRET_KEYRING),
+				new ByteArrayInputStream(invalid_secret_keyring),
 				new JcaPGPDigestCalculatorProviderBuilder().build(),
 				new JcePBEProtectionRemoverFactory(PASSPHRASE.toCharArray()),
 				publicKey));
@@ -158,11 +217,35 @@ public class GpgKeyManagerTest {
 
 	@Test
 	public void testGetPrivateKey() throws Exception {
-		PGPSecretKey secretKey = GpgKeyManager.findSecretKey(EXPECTED_GPG_KEYID,
-				PASSPHRASE, pathOf(FAKE_GPG_SECRET_FILE));
+		PGPSecretKey secretKey = new GpgKeyManager(pathOf(FAKE_GPG_SECRET_FILE))
+				.findSecretKey(EXPECTED_GPG_KEYID, PASSPHRASE);
 		assertEquals(EXPECTED_GPG_KEYID,
 				Long.toHexString(secretKey.getPublicKey().getKeyID())
 						.toUpperCase());
 	}
 
+	@Test(expected = PGPException.class)
+	public void isNullWhenInvalidKeyFile() throws Exception {
+		new GpgKeyManager(pathOf(INVALID_GPG_SECRET_FILE))
+				.findSecretKey(EXPECTED_GPG_KEYID, PASSPHRASE);
+	}
+
+	@Test
+	public void testSignPayload() throws Exception {
+		GpgKeyManager keyManager = new GpgKeyManager(
+				pathOf(FAKE_GPG_SECRET_FILE));
+		PGPSecretKey secretKey = keyManager
+				.findSecretKey(EXPECTED_GPG_KEYID, PASSPHRASE);
+		byte[] signedData = keyManager.signPayload("JGit Commit signer", EXPECTED_GPG_KEYID,
+				PASSPHRASE);
+		assertFalse(keyManager.verifySignature(signedData,
+				secretKey.getPublicKey(),
+				"This content is not signed".getBytes()));
+		assertTrue(keyManager.verifySignature(
+				signedData,
+				secretKey.getPublicKey(),
+				"JGit Commit signer".getBytes()
+		));
+
+	}
 }

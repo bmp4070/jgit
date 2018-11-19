@@ -258,7 +258,7 @@ public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 				commit.setParentIds(parents);
 				commit.setTreeId(indexTreeId);
 				if (gpgSigningKeyId != null)
-					commit.setGpgSig(GpgKeyManager.signPayload(
+					commit.setGpgSig(new GpgKeyManager().signPayload(
 							commit.getPayload(),
 							gpgSigningKeyId, passphrase));
 				ObjectId commitId = odi.insert(commit);
