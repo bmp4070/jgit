@@ -150,17 +150,30 @@ public class GpgKeyManagerTest {
 					+ "e9h3vYe4dR/1Xaj/YFWaQ4HAQF3MV55Ga2lbszjo3GXRZMaOVswi6ikoMTI6"
 					+ "cHJvdGVjdGVkLWF0MTU6MjAxODExMTNUMjAyMjM2KSkp");
 
-	byte[] EXPECTED_COMMIT_BUFFER = Base64.decode(
+	byte[] expected_commit_buffer = Base64.decode(
 			"LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KIFZlcnNpb246IEJDUEcg"
-					+ "djEuNjAKIAogaVFFY0JBQUJDQUFHQlFKYjhvS1pBQW9KRUtYKzZBeGcvNlRa"
-					+ "Vm1JSC9ScGRKaklsUUIyenp3OE9qQXh0STg1eQogaTJadVh3RFdrbnNqSDFL"
-					+ "NkpVMmEwQWZ3SFhCYnhEd0xYaVdibHZVaVZJV0txK1RIYWFEQnZjUkIxOFl4"
-					+ "THMzYQogbk9JTitjQUFFQjBXWnVXRm01cVJzekFiYWs2MGlGc3V0VE9Bdlpx"
-					+ "NkFsR3BoY0t1ZGV0TDF5bFE0cGlmUUZ0VgogNU5iU1VVUkRsbVBLeUdPc1g2"
-					+ "UURGdDB0ZFBZT1dYdzJpTzBTUlpMQ3N5TDlsRW4rakdoY3F0OUhQKzZVdDhW"
-					+ "TwogUlJLOG83MEZtZEdUcHNGaDF5aHRmK1pkempDU1BWMlRQS0kxdldFckpo"
-					+ "d09pZ3JkWEZZcjN4QWJuYTc5UGdhbwogamF0b2lrS283SmlYZGFPVk9oZmR3"
-					+ "N0VUOThZaHBlWVBpaVJKdElUNzhaRG9YcXl4alhBTko2ZWRWd2RM");
+					+ "djEuNjAKIAogaVFFY0JBQUJDQUFHQlFKYjljVmhBQW9KRUtYKzZBeGcvNlRa"
+					+ "ZUZzSC8wQ1kwV1gvejdVOCs3UzVnaUZYNHdINAogb3B2QndxeXQ2T1g4bGdO"
+					+ "d1R3QkdIRk50OExkbURDQ21Lb3EvWHdrTmkzQVJWakxoZTNnQmNLWE5vYXZ2"
+					+ "UGsyWgogZ0lnNUNoZXZHa1U0YWZXQ09NTFZFWW5rQ0JHdzIrODZYaHJLMVA3"
+					+ "Z1RIRWsxUmQrWXYxWlJESkJZK2ZGTzd5egogdVNCdUY1UnBFWTJzSmlJdnAy"
+					+ "N0d1Yi9yWTNCNU5UUi9mZU8veitiOW9pUC9mTVVocFJ3RzVLdVdVc245TlBq"
+					+ "dwogM3R2Ymdhd1lwVS8yVW5TK3huYXZNWTR0MmZqUllqc294bmRQTGIyTVVY"
+					+ "OFg3dkM3RmdXTEJsbUkvcnF1TFpWTQogSVFFS2tqbkErbGhlampLMXJ2K3Vs"
+					+ "cTRrR1pKRktHWVdZWWhSRHdGZzVQVGt6aHVkaE4yU0dVcTVXeHExRWc0PQog"
+					+ "PWI5T0kKIC0tLS0tRU5EIFBHUCBTSUdOQVRVUkUtLS0tLQ==");
+	byte[] unformatted_signature = Base64.decode(
+			"LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KVmVyc2lvbjogQkNQRyB2"
+					+ "MS42MAoKaVFFY0JBQUJDQUFHQlFKYjljVmhBQW9KRUtYKzZBeGcvNlRaZUZz"
+					+ "SC8wQ1kwV1gvejdVOCs3UzVnaUZYNHdINApvcHZCd3F5dDZPWDhsZ053VHdC"
+					+ "R0hGTnQ4TGRtRENDbUtvcS9Yd2tOaTNBUlZqTGhlM2dCY0tYTm9hdnZQazJa"
+					+ "CmdJZzVDaGV2R2tVNGFmV0NPTUxWRVlua0NCR3cyKzg2WGhySzFQN2dUSEVr"
+					+ "MVJkK1l2MVpSREpCWStmRk83eXoKdVNCdUY1UnBFWTJzSmlJdnAyN0d1Yi9y"
+					+ "WTNCNU5UUi9mZU8veitiOW9pUC9mTVVocFJ3RzVLdVdVc245TlBqdwozdHZi"
+					+ "Z2F3WXBVLzJVblMreG5hdk1ZNHQyZmpSWWpzb3huZFBMYjJNVVg4WDd2QzdG"
+					+ "Z1dMQmxtSS9ycXVMWlZNCklRRUtram5BK2xoZWpqSzFydit1bHE0a0daSkZL"
+					+ "R1lXWVloUkR3Rmc1UFRremh1ZGhOMlNHVXE1V3hxMUVnND0KPWI5T0kKLS0t"
+					+ "LS1FTkQgUEdQIFNJR05BVFVSRS0tLS0t");
 
 	private final String EXPECTED_GPG_KEYID = "A5FEE80C60FFA4D9";
 
@@ -246,6 +259,14 @@ public class GpgKeyManagerTest {
 				secretKey.getPublicKey(),
 				"JGit Commit signer".getBytes()
 		));
-
 	}
+
+	@Test
+	public void testReplaceLFWithLFSpace() throws Exception {
+		String expected_signature = new String(expected_commit_buffer);
+		String formatted_signature = GpgKeyManager
+				.replaceLFWithLFSpace(new String(unformatted_signature));
+		assertEquals(expected_signature, formatted_signature);
+	}
+
 }
