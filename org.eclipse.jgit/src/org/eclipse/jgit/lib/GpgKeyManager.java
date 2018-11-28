@@ -309,8 +309,6 @@ public class GpgKeyManager {
 	 */
 	public byte[] signPayload(String input, String signingkey,
 			String passphrase) {
-		// @NonNull
-		// final BouncyCastleProvider provider = new BouncyCastleProvider();
 		PGPSecretKey secretKey;
 		try {
 			secretKey = findSecretKey(signingkey, passphrase);

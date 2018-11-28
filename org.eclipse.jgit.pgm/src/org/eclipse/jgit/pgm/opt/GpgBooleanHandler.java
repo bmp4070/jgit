@@ -45,24 +45,20 @@ package org.eclipse.jgit.pgm.opt;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
+import org.kohsuke.args4j.spi.BooleanOptionHandler;
 import org.kohsuke.args4j.spi.Parameters;
 import org.kohsuke.args4j.spi.Setter;
-import org.kohsuke.args4j.spi.StringOptionHandler;
 
 /**
- * Special handler for the <code>--gpg-sign</code> option of the
+ * Special handler for the <code>--no-gpg-sign</code> option of the
  * <code>commit</code> command.
  *
- * The following rules apply:
- * <ul>
- * <li>If no keyID is given, i.e. just <code>--gpg-sign</code> is passed, then
- * it is the same as <code>--gpg-sign=default</code></li>
- * </ul>
- * Default value is read from gitconfig
+ * The following rule applies, when option --no-gpg-sign is set, signCommit is
+ * set to false
  *
  */
 
-public class GpgSignHandler extends StringOptionHandler {
+public class GpgBooleanHandler extends BooleanOptionHandler {
 
 	/**
 	 * <p>
@@ -76,8 +72,8 @@ public class GpgSignHandler extends StringOptionHandler {
 	 * @param setter
 	 *            Object to be used for setting value.
 	 */
-	public GpgSignHandler(CmdLineParser parser, OptionDef option,
-			Setter<? super String> setter) {
+	public GpgBooleanHandler(CmdLineParser parser, OptionDef option,
+			Setter<? super Boolean> setter) {
 		super(parser, option, setter);
 	}
 
@@ -85,22 +81,12 @@ public class GpgSignHandler extends StringOptionHandler {
 	@Override
 	public int parseArguments(Parameters params) throws CmdLineException {
 		String alias = params.getParameter(-1);
-		String keyID;
-		if ("--gpg-sign".equals(alias) || "-S".equals(alias)) { //$NON-NLS-1$ //$NON-NLS-2$
-			try {
-				keyID = params.getParameter(0);
-			} catch (CmdLineException e) {
-				keyID = null;
-			}
-			if (keyID == null || keyID.startsWith("-")) { //$NON-NLS-1$
-				setter.addValue("default");
-			} else {
-				setter.addValue(keyID);
-				return 1;
-			}
+		if ("--no-gpg-sign".equals(alias)) { //$NON-NLS-1$
+			setter.addValue(false);
 		}
 		return 0;
 
 	}
 
 }
+

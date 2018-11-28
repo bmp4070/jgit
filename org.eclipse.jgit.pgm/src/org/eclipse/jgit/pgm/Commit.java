@@ -50,6 +50,7 @@ import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.GpgConfig;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.pgm.internal.CLIText;
+import org.eclipse.jgit.pgm.opt.GpgBooleanHandler;
 import org.eclipse.jgit.pgm.opt.GpgSignHandler;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.util.RawParseUtils;
@@ -80,7 +81,8 @@ class Commit extends TextBuiltin {
 			"--no-gpg-sign" }, handler = GpgSignHandler.class)
 	private String gpgSigningKeyId;
 
-	@Option(name = "--no-gpg-sign", forbids = { "--gpg-sign" })
+	@Option(name = "--no-gpg-sign", handler = GpgBooleanHandler.class, forbids = {
+			"--gpg-sign" })
 	private boolean signCommit = true;
 
 	@Argument(metaVar = "metaVar_commitPaths", usage = "usage_CommitPaths")
@@ -98,12 +100,16 @@ class Commit extends TextBuiltin {
 			if (message != null)
 				commitCmd.setMessage(message);
 			// when --gpg-sign and --no-gpg-sign are not provided use GPGConfig
-			if (gpgSigningKeyId == null && signCommit)
+			if (gpgSigningKeyId == null && signCommit) {
+				gpgSigningKeyId = "default";
 				signCommit = config.isSignCommits();
+			}
 			if (signCommit) {
-				gpgSigningKeyId = (gpgSigningKeyId != null) ? gpgSigningKeyId
+				gpgSigningKeyId = (!gpgSigningKeyId.equals("default"))
+						? gpgSigningKeyId
 						: config.getSigningKey();
-				if (gpgSigningKeyId == null)
+				if (gpgSigningKeyId == null
+						|| gpgSigningKeyId.equals("default"))
 					throw die(CLIText.get().gpgSigningKeyIdRequired);
 				commitCmd.setGpgSigningKeyId(gpgSigningKeyId);
 				commitCmd.setPassphrase();
