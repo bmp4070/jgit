@@ -88,7 +88,7 @@ public class CommitBuilder {
 
 	private PersonIdent committer;
 
-	private byte[] gpgSig;
+	private GpgSignature gpgSig;
 
 	private String message;
 
@@ -165,7 +165,7 @@ public class CommitBuilder {
 	 * @param newSig
 	 * @since 5.2
 	 */
-	public void setGpgSig(byte[] newSig) {
+	public void setGpgSig(GpgSignature newSig) {
 		gpgSig = newSig;
 	}
 
@@ -175,7 +175,7 @@ public class CommitBuilder {
 	 * @return the gpgSig for this object.
 	 * @since 5.2
 	 */
-	public byte[] getGpgSig() {
+	public GpgSignature getGpgSig() {
 		return gpgSig;
 	}
 
@@ -343,7 +343,7 @@ public class CommitBuilder {
 			if (getGpgSig() != null) {
 				os.write(hgpgsig);
 				os.write(' ');
-				os.write(getGpgSig());
+				os.write(getGpgSig().getBytes());
 				os.write('\n');
 			}
 
@@ -410,7 +410,7 @@ public class CommitBuilder {
 
 		if (gpgSig != null) {
 			r.append("gpgsig ");
-			r.append(gpgSig);
+			r.append(gpgSig.toExternalString());
 			r.append("\n");
 		}
 

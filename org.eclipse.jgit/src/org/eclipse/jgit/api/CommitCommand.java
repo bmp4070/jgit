@@ -94,7 +94,7 @@ import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.TreeWalk.OperationType;
 import org.eclipse.jgit.util.ChangeIdUtil;
-import org.eclipse.jgit.lib.GpgKeyManager;
+import org.eclipse.jgit.lib.GpgSignature;
 
 /**
  * A class used to execute a {@code Commit} command. It has setters for all
@@ -109,8 +109,6 @@ public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 	private PersonIdent author;
 
 	private PersonIdent committer;
-
-	private String gpgSigningKeyId = null;
 
 	private String passphrase = null;
 
@@ -144,6 +142,8 @@ public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 	private HashMap<String, PrintStream> hookOutRedirect = new HashMap<>(3);
 
 	private Boolean allowEmpty;
+
+	private GpgSignature gpgSignature;
 
 	/**
 	 * Constructor for CommitCommand
@@ -257,10 +257,10 @@ public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 
 				commit.setParentIds(parents);
 				commit.setTreeId(indexTreeId);
-				if (gpgSigningKeyId != null)
-					commit.setGpgSig(new GpgKeyManager().signPayload(
-							commit.getPayload(),
-							gpgSigningKeyId, passphrase));
+				if (gpgSignature != null) {
+					gpgSignature.setBuffer(commit.getPayload());
+					commit.setGpgSig(gpgSignature);
+				}
 				ObjectId commitId = odi.insert(commit);
 				odi.flush();
 
@@ -688,22 +688,6 @@ public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 	}
 
 	/**
-	 * Sets the {@link #gpgSigningKeyId} option on this commit command.
-	 * <p>
-	 * If gpgSigningKeyId is set in git config, use it
-	 * </p>
-	 *
-	 * @param gpgSigningKeyId
-	 *            GPG key to sign the commit
-	 * @return {@code this}
-	 * @since 5.2
-	 */
-	public CommitCommand setGpgSigningKeyId(String gpgSigningKeyId) {
-		this.gpgSigningKeyId = gpgSigningKeyId;
-		return this;
-	}
-
-	/**
 	 * Sets the {@link #passphrase} option on this commit command.
 	 * <p>
 	 * Use credentialprovider to obtain passphrase to extract GPG keys
@@ -718,6 +702,46 @@ public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 		this.passphrase = passphraseCredential.getValue();
 		return this;
 
+	}
+
+	/**
+	 * Sets the {@link #gpgSignature} option on this commit command.
+	 *
+	 * @param gpgSigningKeyId
+	 *            GPG key to sign the commit
+	 * @return {@code this}
+	 * @since 5.2
+	 */
+	public CommitCommand setGpgSignature(String gpgSigningKeyId) {
+		checkCallable();
+		return setGpgSignature(gpgSigningKeyId, passphrase);
+
+	}
+
+	/**
+	 * Sets the {@link #gpgSignature} option on this commit command.
+	 *
+	 * @param gpgSigningKeyId
+	 * @param passphrase
+	 * @return {@code this}
+	 */
+	public CommitCommand setGpgSignature(String gpgSigningKeyId,
+			String passphrase) {
+		checkCallable();
+		return setGpgSignature(new GpgSignature(gpgSigningKeyId, passphrase));
+
+	}
+
+	/**
+	 * Sets the {@link #gpgSignature} option on this commit command.
+	 *
+	 * @param gpgSignature
+	 * @return {@code this}
+	 */
+	public CommitCommand setGpgSignature(GpgSignature gpgSignature) {
+		checkCallable();
+		this.gpgSignature = gpgSignature;
+		return this;
 	}
 
 	/**

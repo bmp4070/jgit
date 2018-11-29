@@ -111,8 +111,7 @@ class Commit extends TextBuiltin {
 				if (gpgSigningKeyId == null
 						|| gpgSigningKeyId.equals("default"))
 					throw die(CLIText.get().gpgSigningKeyIdRequired);
-				commitCmd.setGpgSigningKeyId(gpgSigningKeyId);
-				commitCmd.setPassphrase();
+				commitCmd.setPassphrase().setGpgSignature(gpgSigningKeyId);
 
 			}
 			if (only && paths.isEmpty())

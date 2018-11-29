@@ -54,6 +54,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import org.bouncycastle.util.encoders.Base64;
 import org.eclipse.jgit.api.errors.EmptyCommitException;
 import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -64,6 +65,7 @@ import org.eclipse.jgit.junit.RepositoryTestCase;
 import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
+import org.eclipse.jgit.lib.MockGpgSignature;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.RefUpdate;
@@ -529,6 +531,38 @@ public class CommitCommandTest extends RepositoryTestCase {
 			PersonIdent amendedAuthor = amended.getAuthorIdent();
 			assertEquals("New Author", amendedAuthor.getName());
 			assertEquals("newauthor@example.org", amendedAuthor.getEmailAddress());
+		}
+	}
+
+	@Test
+	public void commitWithSignature() throws Exception {
+		try (Git git = new Git(db)) {
+			writeTrashFile("file1", "file1");
+			byte[] encodedData = Base64.decode(
+					"LS0tLS1CRUdJTiBQR1AgU0lHTkFUVVJFLS0tLS0KIFZlcnNpb246IEJDUEcg"
+							+ "djEuNjAKIAogaVFFY0JBQUJDQUFHQlFKYjljVmhBQW9KRUtYKzZBeGcvNlRa"
+							+ "ZUZzSC8wQ1kwV1gvejdVOCs3UzVnaUZYNHdINAogb3B2QndxeXQ2T1g4bGdO"
+							+ "d1R3QkdIRk50OExkbURDQ21Lb3EvWHdrTmkzQVJWakxoZTNnQmNLWE5vYXZ2"
+							+ "UGsyWgogZ0lnNUNoZXZHa1U0YWZXQ09NTFZFWW5rQ0JHdzIrODZYaHJLMVA3"
+							+ "Z1RIRWsxUmQrWXYxWlJESkJZK2ZGTzd5egogdVNCdUY1UnBFWTJzSmlJdnAy"
+							+ "N0d1Yi9yWTNCNU5UUi9mZU8veitiOW9pUC9mTVVocFJ3RzVLdVdVc245TlBq"
+							+ "dwogM3R2Ymdhd1lwVS8yVW5TK3huYXZNWTR0MmZqUllqc294bmRQTGIyTVVY"
+							+ "OFg3dkM3RmdXTEJsbUkvcnF1TFpWTQogSVFFS2tqbkErbGhlampLMXJ2K3Vs"
+							+ "cTRrR1pKRktHWVdZWWhSRHdGZzVQVGt6aHVkaE4yU0dVcTVXeHExRWc0PQog"
+							+ "PWI5T0kKIC0tLS0tRU5EIFBHUCBTSUdOQVRVUkUtLS0tLQ==");
+			String signedData = new String(encodedData);
+			git.add().addFilepattern("file1").call();
+			MockGpgSignature mockGpgSignature = new MockGpgSignature(
+					"A5FEE80C60FFA4D9", "JGitAuth1", signedData);
+
+			RevCommit commit = git.commit()
+					.setAuthor("New Author", "newauthor@example.org")
+					.setMessage("file commit")
+					.setGpgSignature(mockGpgSignature).call();
+
+			PersonIdent commitAuthor = commit.getAuthorIdent();
+			assertEquals("New Author", commitAuthor.getName());
+			assertEquals(signedData, new String(commit.getRawGpgSignature()));
 		}
 	}
 

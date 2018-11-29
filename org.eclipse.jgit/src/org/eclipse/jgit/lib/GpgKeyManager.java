@@ -307,7 +307,7 @@ public class GpgKeyManager {
 	 * @param passphrase
 	 * @return gpgSignature
 	 */
-	public byte[] signPayload(String input, String signingkey,
+	public String signPayload(String input, String signingkey,
 			String passphrase) {
 		PGPSecretKey secretKey;
 		try {
@@ -324,7 +324,7 @@ public class GpgKeyManager {
 			signatureGenerator.init(PGPSignature.BINARY_DOCUMENT,
 					privateKey);
 			ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-			byte[] gpgSignature = null;
+			String gpgSignature = null;
 
 			try (ArmoredOutputStream aOut = new ArmoredOutputStream(buffer);
 					BCPGOutputStream bOut = new BCPGOutputStream(aOut)) {
@@ -332,8 +332,7 @@ public class GpgKeyManager {
 						.update(input.getBytes(StandardCharsets.UTF_8));
 				signatureGenerator.generate().encode(bOut);
 				bOut.close();
-				gpgSignature = replaceLFWithLFSpace(buffer.toString())
-						.getBytes();
+				gpgSignature = replaceLFWithLFSpace(buffer.toString());
 			}
 			return gpgSignature;
 		} catch (PGPException | IOException e) {

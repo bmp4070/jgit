@@ -249,13 +249,14 @@ public class GpgKeyManagerTest {
 				pathOf(FAKE_GPG_SECRET_FILE));
 		PGPSecretKey secretKey = keyManager
 				.findSecretKey(EXPECTED_GPG_KEYID, PASSPHRASE);
-		byte[] signedData = keyManager.signPayload("JGit Commit signer", EXPECTED_GPG_KEYID,
+		String signedData = keyManager.signPayload("JGit Commit signer",
+				EXPECTED_GPG_KEYID,
 				PASSPHRASE);
-		assertFalse(keyManager.verifySignature(signedData,
+		assertFalse(keyManager.verifySignature(signedData.getBytes(),
 				secretKey.getPublicKey(),
 				"This content is not signed".getBytes()));
 		assertTrue(keyManager.verifySignature(
-				signedData,
+				signedData.getBytes(),
 				secretKey.getPublicKey(),
 				"JGit Commit signer".getBytes()
 		));
