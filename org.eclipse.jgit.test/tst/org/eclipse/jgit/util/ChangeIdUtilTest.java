@@ -67,6 +67,8 @@ public class ChangeIdUtilTest {
 	final PersonIdent q = RawParseUtils.parsePersonIdent(
 			"W Riter <writer@example.com> 1142878502 -0500");
 
+    final String g = "gpgsig";
+
 	ObjectId treeId = ObjectId
 			.fromString("f51de923607cd51cf872b928a6b523ba823f7f35");
 

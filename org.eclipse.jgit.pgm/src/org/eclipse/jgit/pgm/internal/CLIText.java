@@ -283,6 +283,7 @@ public class CLIText extends TranslationBundle {
 	/***/ public String pathspecDidNotMatch;
 	/***/ public String pushTo;
 	/***/ public String pathsRequired;
+	/***/ public String gpgSigningKeyIdRequired;
 	/***/ public String refDoesNotExistOrNoCommit;
 	/***/ public String remoteMessage;
 	/***/ public String remoteRefObjectChangedIsNotExpectedOne;

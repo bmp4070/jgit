@@ -76,6 +76,8 @@ public class CommitBuilder {
 
 	private static final byte[] hcommitter = Constants.encodeASCII("committer"); //$NON-NLS-1$
 
+	private static final byte[] hgpgsig = Constants.encodeASCII("gpgsig"); //$NON-NLS-1$
+
 	private static final byte[] hencoding = Constants.encodeASCII("encoding"); //$NON-NLS-1$
 
 	private ObjectId treeId;
@@ -85,6 +87,8 @@ public class CommitBuilder {
 	private PersonIdent author;
 
 	private PersonIdent committer;
+
+	private GpgSignature gpgSig;
 
 	private String message;
 
@@ -153,6 +157,26 @@ public class CommitBuilder {
 	 */
 	public void setCommitter(PersonIdent newCommitter) {
 		committer = newCommitter;
+	}
+
+	/**
+	 * Set the gpgSig for this object
+	 *
+	 * @param newSig
+	 * @since 5.2
+	 */
+	public void setGpgSig(GpgSignature newSig) {
+		gpgSig = newSig;
+	}
+
+	/**
+	 * Get the gpgSig for this object.
+	 *
+	 * @return the gpgSig for this object.
+	 * @since 5.2
+	 */
+	public GpgSignature getGpgSig() {
+		return gpgSig;
 	}
 
 	/**
@@ -316,6 +340,13 @@ public class CommitBuilder {
 			w.flush();
 			os.write('\n');
 
+			if (getGpgSig() != null) {
+				os.write(hgpgsig);
+				os.write(' ');
+				os.write(getGpgSig().getBytes());
+				os.write('\n');
+			}
+
 			if (getEncoding() != UTF_8) {
 				os.write(hencoding);
 				os.write(' ');
@@ -377,6 +408,12 @@ public class CommitBuilder {
 		r.append(committer != null ? committer.toString() : "NOT_SET");
 		r.append("\n");
 
+		if (gpgSig != null) {
+			r.append("gpgsig ");
+			r.append(gpgSig.toExternalString());
+			r.append("\n");
+		}
+
 		if (encoding != null && encoding != UTF_8) {
 			r.append("encoding ");
 			r.append(encoding.name());
@@ -386,6 +423,46 @@ public class CommitBuilder {
 		r.append("\n");
 		r.append(message != null ? message : "");
 		r.append("}");
+		return r.toString();
+	}
+
+	/**
+	 * Formatted commit info used by GPG to generate signature
+	 *
+	 * @return buffer payload containing commit info
+	 * @since 5.2
+	 */
+	@SuppressWarnings("nls")
+	public String getPayload() {
+		StringBuilder r = new StringBuilder();
+
+		r.append("tree ");
+		r.append(treeId != null ? treeId.name() : "NOT_SET");
+		r.append("\n");
+
+		for (ObjectId p : parentIds) {
+			r.append("parent ");
+			r.append(p.name());
+			r.append("\n");
+		}
+
+		r.append("author ");
+		r.append(author != null ? getAuthor().toExternalString() : "NOT_SET");
+		r.append("\n");
+
+		r.append("committer ");
+		r.append(committer != null ? getCommitter().toExternalString()
+				: "NOT_SET");
+		r.append("\n");
+
+		if (encoding != null && encoding != Constants.CHARSET) {
+			r.append("encoding ");
+			r.append(encoding.name());
+			r.append("\n");
+		}
+
+		r.append("\n");
+		r.append(message != null ? message : "");
 		return r.toString();
 	}
 }

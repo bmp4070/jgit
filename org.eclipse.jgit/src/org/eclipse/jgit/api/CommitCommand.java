@@ -88,11 +88,13 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevObject;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.transport.CredentialItem;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.TreeWalk.OperationType;
 import org.eclipse.jgit.util.ChangeIdUtil;
+import org.eclipse.jgit.lib.GpgSignature;
 
 /**
  * A class used to execute a {@code Commit} command. It has setters for all
@@ -103,10 +105,12 @@ import org.eclipse.jgit.util.ChangeIdUtil;
  *      href="http://www.kernel.org/pub/software/scm/git/docs/git-commit.html"
  *      >Git documentation about Commit</a>
  */
-public class CommitCommand extends GitCommand<RevCommit> {
+public class CommitCommand extends TransportCommand<CommitCommand, RevCommit> {
 	private PersonIdent author;
 
 	private PersonIdent committer;
+
+	private String passphrase = null;
 
 	private String message;
 
@@ -138,6 +142,8 @@ public class CommitCommand extends GitCommand<RevCommit> {
 	private HashMap<String, PrintStream> hookOutRedirect = new HashMap<>(3);
 
 	private Boolean allowEmpty;
+
+	private GpgSignature gpgSignature;
 
 	/**
 	 * Constructor for CommitCommand
@@ -251,6 +257,10 @@ public class CommitCommand extends GitCommand<RevCommit> {
 
 				commit.setParentIds(parents);
 				commit.setTreeId(indexTreeId);
+				if (gpgSignature != null) {
+					gpgSignature.setBuffer(commit.getPayload());
+					commit.setGpgSig(gpgSignature);
+				}
 				ObjectId commitId = odi.insert(commit);
 				odi.flush();
 
@@ -675,6 +685,63 @@ public class CommitCommand extends GitCommand<RevCommit> {
 	 */
 	public PersonIdent getCommitter() {
 		return committer;
+	}
+
+	/**
+	 * Sets the {@link #passphrase} option on this commit command.
+	 * <p>
+	 * Use credentialprovider to obtain passphrase to extract GPG keys
+	 *
+	 * @return {@code this}
+	 * @since 5.2
+	 */
+	public CommitCommand setPassphrase() {
+		CredentialItem.StringType passphraseCredential = new CredentialItem.StringType(
+				"GPG Passphrase:", true); //$NON-NLS-1$
+		credentialsProvider.get(null, passphraseCredential);
+		this.passphrase = passphraseCredential.getValue();
+		return this;
+
+	}
+
+	/**
+	 * Sets the {@link #gpgSignature} option on this commit command.
+	 *
+	 * @param gpgSigningKeyId
+	 *            GPG key to sign the commit
+	 * @return {@code this}
+	 * @since 5.2
+	 */
+	public CommitCommand setGpgSignature(String gpgSigningKeyId) {
+		checkCallable();
+		return setGpgSignature(gpgSigningKeyId, passphrase);
+
+	}
+
+	/**
+	 * Sets the {@link #gpgSignature} option on this commit command.
+	 *
+	 * @param gpgSigningKeyId
+	 * @param passphrase
+	 * @return {@code this}
+	 */
+	public CommitCommand setGpgSignature(String gpgSigningKeyId,
+			String passphrase) {
+		checkCallable();
+		return setGpgSignature(new GpgSignature(gpgSigningKeyId, passphrase));
+
+	}
+
+	/**
+	 * Sets the {@link #gpgSignature} option on this commit command.
+	 *
+	 * @param gpgSignature
+	 * @return {@code this}
+	 */
+	public CommitCommand setGpgSignature(GpgSignature gpgSignature) {
+		checkCallable();
+		this.gpgSignature = gpgSignature;
+		return this;
 	}
 
 	/**

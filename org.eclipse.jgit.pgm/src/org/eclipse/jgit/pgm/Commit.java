@@ -47,8 +47,11 @@ import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.api.errors.NoMessageException;
 import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.GpgConfig;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.pgm.internal.CLIText;
+import org.eclipse.jgit.pgm.opt.GpgBooleanHandler;
+import org.eclipse.jgit.pgm.opt.GpgSignHandler;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.util.RawParseUtils;
 import org.kohsuke.args4j.Argument;
@@ -74,6 +77,14 @@ class Commit extends TextBuiltin {
 	@Option(name = "--amend", usage = "usage_CommitAmend")
 	private boolean amend;
 
+	@Option(name = "--gpg-sign", aliases = { "-S" }, forbids = {
+			"--no-gpg-sign" }, handler = GpgSignHandler.class)
+	private String gpgSigningKeyId;
+
+	@Option(name = "--no-gpg-sign", handler = GpgBooleanHandler.class, forbids = {
+			"--gpg-sign" })
+	private boolean signCommit = true;
+
 	@Argument(metaVar = "metaVar_commitPaths", usage = "usage_CommitPaths")
 	private List<String> paths = new ArrayList<>();
 
@@ -82,11 +93,27 @@ class Commit extends TextBuiltin {
 	protected void run() throws NoHeadException, NoMessageException,
 			ConcurrentRefUpdateException, JGitInternalException, Exception {
 		try (Git git = new Git(db)) {
+			GpgConfig config = new GpgConfig(git.getRepository().getConfig());
 			CommitCommand commitCmd = git.commit();
 			if (author != null)
 				commitCmd.setAuthor(RawParseUtils.parsePersonIdent(author));
 			if (message != null)
 				commitCmd.setMessage(message);
+			// when --gpg-sign and --no-gpg-sign are not provided use GPGConfig
+			if (gpgSigningKeyId == null && signCommit) {
+				gpgSigningKeyId = "default";
+				signCommit = config.isSignCommits();
+			}
+			if (signCommit) {
+				gpgSigningKeyId = (!gpgSigningKeyId.equals("default"))
+						? gpgSigningKeyId
+						: config.getSigningKey();
+				if (gpgSigningKeyId == null
+						|| gpgSigningKeyId.equals("default"))
+					throw die(CLIText.get().gpgSigningKeyIdRequired);
+				commitCmd.setPassphrase().setGpgSignature(gpgSigningKeyId);
+
+			}
 			if (only && paths.isEmpty())
 				throw die(CLIText.get().pathsRequired);
 			if (only && all)
