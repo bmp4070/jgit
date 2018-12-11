@@ -22,6 +22,7 @@ java_library(
         "//org.eclipse.jgit:jgit",
         "//org.eclipse.jgit.lfs:jgit-lfs",
         "//org.eclipse.jgit.lfs.server:jgit-lfs-server",
+        "//org.eclipse.jgit.ssh.apache:ssh-apache",
         "//org.eclipse.jgit.ui:ui",
     ],
 )

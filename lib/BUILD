@@ -28,6 +28,15 @@ java_library(
 )
 
 java_library(
+    name = "eddsa",
+    visibility = [
+        "//org.eclipse.jgit.ssh.apache:__pkg__",
+        "//org.eclipse.jgit.ssh.apache.test:__pkg__",
+    ],
+    exports = ["@eddsa//jar"],
+)
+
+java_library(
     name = "gson",
     visibility = [
         "//org.eclipse.jgit.lfs:__pkg__",
@@ -61,7 +70,9 @@ java_library(
 java_library(
     name = "sshd-core",
     visibility = [
-        "//org.eclipse.jgit.junit:__pkg__",
+        "//org.eclipse.jgit.junit.ssh:__pkg__",
+        "//org.eclipse.jgit.ssh.apache:__pkg__",
+        "//org.eclipse.jgit.ssh.apache.test:__pkg__",
         "//org.eclipse.jgit.test:__pkg__",
     ],
     exports = ["@sshd-core//jar"],
@@ -70,7 +81,9 @@ java_library(
 java_library(
     name = "sshd-sftp",
     visibility = [
-        "//org.eclipse.jgit.junit:__pkg__",
+        "//org.eclipse.jgit.junit.ssh:__pkg__",
+        "//org.eclipse.jgit.ssh.apache:__pkg__",
+        "//org.eclipse.jgit.ssh.apache.test:__pkg__",
         "//org.eclipse.jgit.test:__pkg__",
     ],
     exports = ["@sshd-sftp//jar"],
@@ -135,6 +148,33 @@ java_library(
 )
 
 java_library(
+    name = "bcpg",
+    visibility = [
+        "//org.eclipse.jgit:__pkg__",
+        "//org.eclipse.jgit.test:__pkg__",
+    ],
+    exports = ["@bcpg-jdk15on//jar"],
+)
+
+java_library(
+    name = "bcprov",
+    visibility = [
+        "//org.eclipse.jgit:__pkg__",
+        "//org.eclipse.jgit.test:__pkg__",
+    ],
+    exports = ["@bcprov-jdk15on//jar"],
+)
+
+java_library(
+    name = "bcpkix",
+    visibility = [
+        "//org.eclipse.jgit:__pkg__",
+        "//org.eclipse.jgit.test:__pkg__",
+    ],
+    exports = ["@bcpkix-jdk15on//jar"],
+)
+
+java_library(
     name = "jzlib",
     visibility = [
         "//org.eclipse.jgit:__pkg__",
@@ -151,6 +191,18 @@ java_library(
         "@hamcrest-core//jar",
         "@hamcrest-library//jar",
         "@junit//jar",
+    ],
+)
+
+java_library(
+    name = "mockito",
+    testonly = 1,
+    visibility = ["//visibility:public"],
+    exports = [
+        "@byte_buddy//jar",
+        "@byte_buddy_agent//jar",
+        "@mockito//jar",
+        "@objenesis//jar",
     ],
 )
 

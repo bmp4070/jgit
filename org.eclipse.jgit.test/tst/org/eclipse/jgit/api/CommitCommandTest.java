@@ -46,6 +46,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -53,6 +54,7 @@ import java.io.File;
 import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.jgit.api.errors.EmptyCommitException;
 import org.eclipse.jgit.api.errors.WrongRepositoryStateException;
@@ -61,9 +63,11 @@ import org.eclipse.jgit.dircache.DirCache;
 import org.eclipse.jgit.dircache.DirCacheBuilder;
 import org.eclipse.jgit.dircache.DirCacheEntry;
 import org.eclipse.jgit.junit.RepositoryTestCase;
+import org.eclipse.jgit.lib.CommitBuilder;
 import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
+import org.eclipse.jgit.lib.GpgSigner;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.RefUpdate;
@@ -73,6 +77,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.StoredConfig;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.submodule.SubmoduleWalk;
+import org.eclipse.jgit.transport.CredentialsProvider;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.TreeFilter;
 import org.eclipse.jgit.util.FS;
@@ -627,5 +632,111 @@ public class CommitCommandTest extends RepositoryTestCase {
 		builder.add(stage1);
 		builder.add(stage2);
 		builder.add(stage3);
+	}
+
+	@Test
+	public void callSignerWithProperSigningKey() throws Exception {
+		try (Git git = new Git(db)) {
+			writeTrashFile("file1", "file1");
+			git.add().addFilepattern("file1").call();
+
+			String[] signingKey = new String[1];
+			PersonIdent[] signingCommitters = new PersonIdent[1];
+			AtomicInteger callCount = new AtomicInteger();
+			GpgSigner.setDefault(new GpgSigner() {
+				@Override
+				public void sign(CommitBuilder commit, String gpgSigningKey,
+						PersonIdent signingCommitter, CredentialsProvider credentialsProvider) {
+					signingKey[0] = gpgSigningKey;
+					signingCommitters[0] = signingCommitter;
+					callCount.incrementAndGet();
+				}
+			});
+
+			// first call should use config, which is expected to be null at
+			// this time
+			git.commit().setCommitter(committer).setSign(Boolean.TRUE)
+					.setMessage("initial commit")
+					.call();
+			assertNull(signingKey[0]);
+			assertEquals(1, callCount.get());
+			assertSame(committer, signingCommitters[0]);
+
+			writeTrashFile("file2", "file2");
+			git.add().addFilepattern("file2").call();
+
+			// second commit applies config value
+			String expectedConfigSigningKey = "config-" + System.nanoTime();
+			StoredConfig config = git.getRepository().getConfig();
+			config.setString("user", null, "signingKey",
+					expectedConfigSigningKey);
+			config.save();
+
+			git.commit().setCommitter(committer).setSign(Boolean.TRUE)
+					.setMessage("initial commit")
+					.call();
+			assertEquals(expectedConfigSigningKey, signingKey[0]);
+			assertEquals(2, callCount.get());
+			assertSame(committer, signingCommitters[0]);
+
+			writeTrashFile("file3", "file3");
+			git.add().addFilepattern("file3").call();
+
+			// now use specific on api
+			String expectedSigningKey = "my-" + System.nanoTime();
+			git.commit().setCommitter(committer).setSign(Boolean.TRUE)
+					.setSigningKey(expectedSigningKey)
+					.setMessage("initial commit").call();
+			assertEquals(expectedSigningKey, signingKey[0]);
+			assertEquals(3, callCount.get());
+			assertSame(committer, signingCommitters[0]);
+		}
+	}
+
+	@Test
+	public void callSignerOnlyWhenSigning() throws Exception {
+		try (Git git = new Git(db)) {
+			writeTrashFile("file1", "file1");
+			git.add().addFilepattern("file1").call();
+
+			AtomicInteger callCount = new AtomicInteger();
+			GpgSigner.setDefault(new GpgSigner() {
+				@Override
+				public void sign(CommitBuilder commit, String gpgSigningKey,
+						PersonIdent signingCommitter, CredentialsProvider credentialsProvider) {
+					callCount.incrementAndGet();
+				}
+			});
+
+			// first call should use config, which is expected to be null at
+			// this time
+			git.commit().setMessage("initial commit").call();
+			assertEquals(0, callCount.get());
+
+			writeTrashFile("file2", "file2");
+			git.add().addFilepattern("file2").call();
+
+			// now force signing
+			git.commit().setSign(Boolean.TRUE).setMessage("commit").call();
+			assertEquals(1, callCount.get());
+
+			writeTrashFile("file3", "file3");
+			git.add().addFilepattern("file3").call();
+
+			// now rely on config
+			StoredConfig config = git.getRepository().getConfig();
+			config.setBoolean("commit", null, "gpgSign", true);
+			config.save();
+
+			git.commit().setMessage("commit").call();
+			assertEquals(2, callCount.get());
+
+			writeTrashFile("file4", "file4");
+			git.add().addFilepattern("file4").call();
+
+			// now force "no-sign" (even though config is true)
+			git.commit().setSign(Boolean.FALSE).setMessage("commit").call();
+			assertEquals(2, callCount.get());
+		}
 	}
 }

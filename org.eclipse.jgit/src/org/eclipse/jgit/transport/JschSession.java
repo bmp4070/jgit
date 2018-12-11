@@ -52,6 +52,11 @@ import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jgit.errors.TransportException;
 import org.eclipse.jgit.internal.JGitText;
@@ -59,8 +64,10 @@ import org.eclipse.jgit.util.io.IsolatedOutputStream;
 
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.ChannelSftp;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
+import com.jcraft.jsch.SftpException;
 
 /**
  * Run remote commands using Jsch.
@@ -109,9 +116,21 @@ public class JschSession implements RemoteSession {
 	 * @return a channel suitable for Sftp operations.
 	 * @throws com.jcraft.jsch.JSchException
 	 *             on problems getting the channel.
+	 * @deprecated since 5.2; use {@link #getFtpChannel()} instead
 	 */
+	@Deprecated
 	public Channel getSftpChannel() throws JSchException {
 		return sock.openChannel("sftp"); //$NON-NLS-1$
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * @since 5.2
+	 */
+	@Override
+	public FtpChannel getFtpChannel() {
+		return new JschFtpChannel();
 	}
 
 	/**
@@ -231,6 +250,156 @@ public class JschSession implements RemoteSession {
 			while (isRunning())
 				Thread.sleep(100);
 			return exitValue();
+		}
+	}
+
+	private class JschFtpChannel implements FtpChannel {
+
+		private ChannelSftp ftp;
+
+		@Override
+		public void connect(int timeout, TimeUnit unit) throws IOException {
+			try {
+				ftp = (ChannelSftp) sock.openChannel("sftp"); //$NON-NLS-1$
+				ftp.connect((int) unit.toMillis(timeout));
+			} catch (JSchException e) {
+				ftp = null;
+				throw new IOException(e.getLocalizedMessage(), e);
+			}
+		}
+
+		@Override
+		public void disconnect() {
+			ftp.disconnect();
+			ftp = null;
+		}
+
+		private <T> T map(Callable<T> op) throws IOException {
+			try {
+				return op.call();
+			} catch (Exception e) {
+				if (e instanceof SftpException) {
+					throw new FtpChannel.FtpException(e.getLocalizedMessage(),
+							((SftpException) e).id, e);
+				}
+				throw new IOException(e.getLocalizedMessage(), e);
+			}
+		}
+
+		@Override
+		public boolean isConnected() {
+			return ftp != null && sock.isConnected();
+		}
+
+		@Override
+		public void cd(String path) throws IOException {
+			map(() -> {
+				ftp.cd(path);
+				return null;
+			});
+		}
+
+		@Override
+		public String pwd() throws IOException {
+			return map(() -> ftp.pwd());
+		}
+
+		@Override
+		public Collection<DirEntry> ls(String path) throws IOException {
+			return map(() -> {
+				List<DirEntry> result = new ArrayList<>();
+				for (Object e : ftp.ls(path)) {
+					ChannelSftp.LsEntry entry = (ChannelSftp.LsEntry) e;
+					result.add(new DirEntry() {
+
+						@Override
+						public String getFilename() {
+							return entry.getFilename();
+						}
+
+						@Override
+						public long getModifiedTime() {
+							return entry.getAttrs().getMTime();
+						}
+
+						@Override
+						public boolean isDirectory() {
+							return entry.getAttrs().isDir();
+						}
+					});
+				}
+				return result;
+			});
+		}
+
+		@Override
+		public void rmdir(String path) throws IOException {
+			map(() -> {
+				ftp.rm(path);
+				return null;
+			});
+		}
+
+		@Override
+		public void mkdir(String path) throws IOException {
+			map(() -> {
+				ftp.mkdir(path);
+				return null;
+			});
+		}
+
+		@Override
+		public InputStream get(String path) throws IOException {
+			return map(() -> ftp.get(path));
+		}
+
+		@Override
+		public OutputStream put(String path) throws IOException {
+			return map(() -> ftp.put(path));
+		}
+
+		@Override
+		public void rm(String path) throws IOException {
+			map(() -> {
+				ftp.rm(path);
+				return null;
+			});
+		}
+
+		@Override
+		public void rename(String from, String to) throws IOException {
+			map(() -> {
+				// Plain FTP rename will fail if "to" exists. Jsch knows about
+				// the FTP extension "posix-rename@openssh.com", which will
+				// remove "to" first if it exists.
+				if (hasPosixRename()) {
+					ftp.rename(from, to);
+				} else if (!to.equals(from)) {
+					// Try to remove "to" first. With git, we typically get this
+					// when a lock file is moved over the file locked. Note that
+					// the check for to being equal to from may still fail in
+					// the general case, but for use with JGit's TransportSftp
+					// it should be good enough.
+					delete(to);
+					ftp.rename(from, to);
+				}
+				return null;
+			});
+		}
+
+		/**
+		 * Determine whether the server has the posix-rename extension.
+		 *
+		 * @return {@code true} if it is supported, {@code false} otherwise
+		 * @see <a href=
+		 *      "https://cvsweb.openbsd.org/src/usr.bin/ssh/PROTOCOL?annotate=HEAD">OpenSSH
+		 *      deviations and extensions to the published SSH protocol</a>
+		 * @see <a href=
+		 *      "http://pubs.opengroup.org/onlinepubs/9699919799/functions/rename.html">stdio.h:
+		 *      rename()</a>
+		 */
+		private boolean hasPosixRename() {
+			return "1".equals(ftp.getExtension("posix-rename@openssh.com")); //$NON-NLS-1$//$NON-NLS-2$
 		}
 	}
 }

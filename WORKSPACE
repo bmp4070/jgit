@@ -23,6 +23,12 @@ load(
 )
 
 maven_jar(
+    name = "eddsa",
+    artifact = "net.i2p.crypto:eddsa:0.3.0",
+    sha1 = "1901c8d4d8bffb7d79027686cfb91e704217c3e1",
+)
+
+maven_jar(
     name = "jsch",
     artifact = "com.jcraft:jsch:0.1.54",
     sha1 = "da3584329a263616e277e15462b387addd1b208d",
@@ -96,8 +102,8 @@ maven_jar(
 
 maven_jar(
     name = "commons-compress",
-    artifact = "org.apache.commons:commons-compress:1.15",
-    sha1 = "b686cd04abaef1ea7bc5e143c080563668eec17e",
+    artifact = "org.apache.commons:commons-compress:1.18",
+    sha1 = "1191f9f2bc0c47a8cce69193feb1ff0a8bcb37d5",
 )
 
 maven_jar(
@@ -128,6 +134,32 @@ maven_jar(
     name = "hamcrest-core",
     artifact = "org.hamcrest:hamcrest-core:1.3",
     sha1 = "42a25dc3219429f0e5d060061f71acb49bf010a0",
+)
+
+maven_jar(
+    name = "mockito",
+    artifact = "org.mockito:mockito-core:2.13.0",
+    sha1 = "8e372943974e4a121fb8617baced8ebfe46d54f0",
+)
+
+BYTE_BUDDY_VERSION = "1.7.9"
+
+maven_jar(
+    name = "byte_buddy",
+    artifact = "net.bytebuddy:byte-buddy:" + BYTE_BUDDY_VERSION,
+    sha1 = "51218a01a882c04d0aba8c028179cce488bbcb58",
+)
+
+maven_jar(
+    name = "byte_buddy_agent",
+    artifact = "net.bytebuddy:byte-buddy-agent:" + BYTE_BUDDY_VERSION,
+    sha1 = "a6c65f9da7f467ee1f02ff2841ffd3155aee2fc9",
+)
+
+maven_jar(
+    name = "objenesis",
+    artifact = "org.objenesis:objenesis:2.6",
+    sha1 = "639033469776fd37c08358c6b92a4761feb2af4b",
 )
 
 maven_jar(
@@ -178,4 +210,27 @@ maven_jar(
     artifact = "org.eclipse.jetty:jetty-util:" + JETTY_VER,
     sha1 = "f0f25aa2f27d618a04bc7356fa247ae4a05245b3",
     src_sha1 = "4e5c4c483cfd9804c2fc5d5751866243bbb9d740",
+)
+
+BOUNCYCASTLE_VER = "1.60"
+
+maven_jar(
+    name = "bcpg-jdk15on",
+    artifact = "org.bouncycastle:bcpg-jdk15on:" + BOUNCYCASTLE_VER,
+    sha1 = "13c7a199c484127daad298996e95818478431a2c",
+    src_sha1 = "edcd9e86d95e39b4da39bb295efd93bc4f56266e",
+)
+
+maven_jar(
+    name = "bcprov-jdk15on",
+    artifact = "org.bouncycastle:bcprov-jdk15on:" + BOUNCYCASTLE_VER,
+    sha1 = "bd47ad3bd14b8e82595c7adaa143501e60842a84",
+    src_sha1 = "7c57a4d13fe53d9abb967bba600dd0b293dafd6a",
+)
+
+maven_jar(
+    name = "bcpkix-jdk15on",
+    artifact = "org.bouncycastle:bcpkix-jdk15on:" + BOUNCYCASTLE_VER,
+    sha1 = "d0c46320fbc07be3a24eb13a56cee4e3d38e0c75",
+    src_sha1 = "a25f041293f401af08efba63ff4bbdce98134a03",
 )

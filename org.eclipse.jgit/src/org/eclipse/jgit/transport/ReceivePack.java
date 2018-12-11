@@ -76,8 +76,6 @@ public class ReceivePack extends BaseReceivePack {
 	/** If {@link BasePackPushConnection#CAPABILITY_REPORT_STATUS} is enabled. */
 	private boolean reportStatus;
 
-	private boolean echoCommandFailures;
-
 	/** Whether the client intends to use push options. */
 	private boolean usePushOptions;
 	private List<String> pushOptions;
@@ -191,9 +189,11 @@ public class ReceivePack extends BaseReceivePack {
 	 *            messages before sending the command results. This is usually
 	 *            not necessary, but may help buggy Git clients that discard the
 	 *            errors when all branches fail.
+	 * @deprecated no widely used Git versions need this any more
 	 */
+	@Deprecated
 	public void setEchoCommandFailures(boolean echo) {
-		echoCommandFailures = echo;
+		// No-op.
 	}
 
 	/**
@@ -269,36 +269,28 @@ public class ReceivePack extends BaseReceivePack {
 				}
 			}
 
-			if (unpackError == null) {
-				boolean atomic = isCapabilityEnabled(CAPABILITY_ATOMIC);
-				setAtomic(atomic);
+			try {
+				if (unpackError == null) {
+					boolean atomic = isCapabilityEnabled(CAPABILITY_ATOMIC);
+					setAtomic(atomic);
 
-				validateCommands();
-				if (atomic && anyRejects())
-					failPendingCommands();
+					validateCommands();
+					if (atomic && anyRejects()) {
+						failPendingCommands();
+					}
 
-				preReceive.onPreReceive(this, filterCommands(Result.NOT_ATTEMPTED));
-				if (atomic && anyRejects())
-					failPendingCommands();
-				executeCommands();
+					preReceive.onPreReceive(
+							this, filterCommands(Result.NOT_ATTEMPTED));
+					if (atomic && anyRejects()) {
+						failPendingCommands();
+					}
+					executeCommands();
+				}
+			} finally {
+				unlockPack();
 			}
-			unlockPack();
 
 			if (reportStatus) {
-				if (echoCommandFailures && msgOut != null) {
-					sendStatusReport(false, unpackError, new Reporter() {
-						@Override
-						void sendString(String s) throws IOException {
-							msgOut.write(Constants.encode(s + "\n")); //$NON-NLS-1$
-						}
-					});
-					msgOut.flush();
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException wakeUp) {
-						// Ignore an early wake up.
-					}
-				}
 				sendStatusReport(true, unpackError, new Reporter() {
 					@Override
 					void sendString(String s) throws IOException {

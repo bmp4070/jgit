@@ -58,6 +58,8 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
 
+import org.eclipse.jgit.annotations.NonNull;
+
 /**
  * The interface of connections used during HTTP communication. This interface
  * is that subset of the interface exposed by {@link java.net.HttpURLConnection}
@@ -69,25 +71,25 @@ public interface HttpConnection {
 	/**
 	 * @see HttpURLConnection#HTTP_OK
 	 */
-	public static final int HTTP_OK = java.net.HttpURLConnection.HTTP_OK;
+	int HTTP_OK = java.net.HttpURLConnection.HTTP_OK;
 
 	/**
 	 * @see HttpURLConnection#HTTP_MOVED_PERM
 	 * @since 4.7
 	 */
-	public static final int HTTP_MOVED_PERM = java.net.HttpURLConnection.HTTP_MOVED_PERM;
+	int HTTP_MOVED_PERM = java.net.HttpURLConnection.HTTP_MOVED_PERM;
 
 	/**
 	 * @see HttpURLConnection#HTTP_MOVED_TEMP
 	 * @since 4.9
 	 */
-	public static final int HTTP_MOVED_TEMP = java.net.HttpURLConnection.HTTP_MOVED_TEMP;
+	int HTTP_MOVED_TEMP = java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 
 	/**
 	 * @see HttpURLConnection#HTTP_SEE_OTHER
 	 * @since 4.9
 	 */
-	public static final int HTTP_SEE_OTHER = java.net.HttpURLConnection.HTTP_SEE_OTHER;
+	int HTTP_SEE_OTHER = java.net.HttpURLConnection.HTTP_SEE_OTHER;
 
 	/**
 	 * HTTP 1.1 additional MOVED_TEMP status code; value = 307.
@@ -95,22 +97,22 @@ public interface HttpConnection {
 	 * @see #HTTP_MOVED_TEMP
 	 * @since 4.9
 	 */
-	public static final int HTTP_11_MOVED_TEMP = 307;
+	int HTTP_11_MOVED_TEMP = 307;
 
 	/**
 	 * @see HttpURLConnection#HTTP_NOT_FOUND
 	 */
-	public static final int HTTP_NOT_FOUND = java.net.HttpURLConnection.HTTP_NOT_FOUND;
+	int HTTP_NOT_FOUND = java.net.HttpURLConnection.HTTP_NOT_FOUND;
 
 	/**
 	 * @see HttpURLConnection#HTTP_UNAUTHORIZED
 	 */
-	public static final int HTTP_UNAUTHORIZED = java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
+	int HTTP_UNAUTHORIZED = java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 
 	/**
 	 * @see HttpURLConnection#HTTP_FORBIDDEN
 	 */
-	public static final int HTTP_FORBIDDEN = java.net.HttpURLConnection.HTTP_FORBIDDEN;
+	int HTTP_FORBIDDEN = java.net.HttpURLConnection.HTTP_FORBIDDEN;
 
 	/**
 	 * Get response code
@@ -119,7 +121,7 @@ public interface HttpConnection {
 	 * @return the HTTP Status-Code, or -1
 	 * @throws java.io.IOException
 	 */
-	public int getResponseCode() throws IOException;
+	int getResponseCode() throws IOException;
 
 	/**
 	 * Get URL
@@ -127,7 +129,7 @@ public interface HttpConnection {
 	 * @see HttpURLConnection#getURL()
 	 * @return the URL.
 	 */
-	public URL getURL();
+	URL getURL();
 
 	/**
 	 * Get response message
@@ -136,15 +138,15 @@ public interface HttpConnection {
 	 * @return the HTTP response message, or <code>null</code>
 	 * @throws java.io.IOException
 	 */
-	public String getResponseMessage() throws IOException;
+	String getResponseMessage() throws IOException;
 
 	/**
-	 * Get list of header fields
+	 * Get map of header fields
 	 *
 	 * @see HttpURLConnection#getHeaderFields()
 	 * @return a Map of header fields
 	 */
-	public Map<String, List<String>> getHeaderFields();
+	Map<String, List<String>> getHeaderFields();
 
 	/**
 	 * Set request property
@@ -156,7 +158,7 @@ public interface HttpConnection {
 	 * @param value
 	 *            the value associated with it.
 	 */
-	public void setRequestProperty(String key, String value);
+	void setRequestProperty(String key, String value);
 
 	/**
 	 * Set request method
@@ -170,7 +172,7 @@ public interface HttpConnection {
 	 * @throws java.net.ProtocolException
 	 *             if any.
 	 */
-	public void setRequestMethod(String method)
+	void setRequestMethod(String method)
 			throws ProtocolException;
 
 	/**
@@ -181,7 +183,7 @@ public interface HttpConnection {
 	 *            a <code>boolean</code> indicating whether or not to allow
 	 *            caching
 	 */
-	public void setUseCaches(boolean usecaches);
+	void setUseCaches(boolean usecaches);
 
 	/**
 	 * Set connect timeout
@@ -191,7 +193,7 @@ public interface HttpConnection {
 	 *            an <code>int</code> that specifies the connect timeout value
 	 *            in milliseconds
 	 */
-	public void setConnectTimeout(int timeout);
+	void setConnectTimeout(int timeout);
 
 	/**
 	 * Set read timeout
@@ -201,7 +203,7 @@ public interface HttpConnection {
 	 *            an <code>int</code> that specifies the timeout value to be
 	 *            used in milliseconds
 	 */
-	public void setReadTimeout(int timeout);
+	void setReadTimeout(int timeout);
 
 	/**
 	 * Get content type
@@ -210,7 +212,7 @@ public interface HttpConnection {
 	 * @return the content type of the resource that the URL references, or
 	 *         <code>null</code> if not known.
 	 */
-	public String getContentType();
+	String getContentType();
 
 	/**
 	 * Get input stream
@@ -222,10 +224,16 @@ public interface HttpConnection {
 	 * @throws java.io.IOException
 	 *             if any.
 	 */
-	public InputStream getInputStream() throws IOException;
+	InputStream getInputStream() throws IOException;
 
 	/**
-	 * Get header field
+	 * Get header field. According to
+	 * {@link <a href="https://tools.ietf.org/html/rfc2616#section-4.2">RFC
+	 * 2616</a>} header field names are case insensitive. Header fields defined
+	 * as a comma separated list can have multiple header fields with the same
+	 * field name. This method only returns one of these header fields. If you
+	 * want the union of all values of all multiple header fields with the same
+	 * field name then use {@link #getHeaderFields(String)}
 	 *
 	 * @see HttpURLConnection#getHeaderField(String)
 	 * @param name
@@ -233,7 +241,22 @@ public interface HttpConnection {
 	 * @return the value of the named header field, or <code>null</code> if
 	 *         there is no such field in the header.
 	 */
-	public String getHeaderField(String name);
+	String getHeaderField(@NonNull String name);
+
+	/**
+	 * Get all values of given header field. According to
+	 * {@link <a href="https://tools.ietf.org/html/rfc2616#section-4.2">RFC
+	 * 2616</a>} header field names are case insensitive. Header fields defined
+	 * as a comma separated list can have multiple header fields with the same
+	 * field name. This method does not validate if the given header field is
+	 * defined as a comma separated list.
+	 *
+	 * @param name
+	 *            the name of a header field.
+	 * @return the list of values of the named header field
+	 * @since 5.2
+	 */
+	List<String> getHeaderFields(@NonNull String name);
 
 	/**
 	 * Get content length
@@ -243,7 +266,7 @@ public interface HttpConnection {
 	 *         references, {@code -1} if the content length is not known, or if
 	 *         the content length is greater than Integer.MAX_VALUE.
 	 */
-	public int getContentLength();
+	int getContentLength();
 
 	/**
 	 * Set whether or not to follow HTTP redirects.
@@ -253,7 +276,7 @@ public interface HttpConnection {
 	 *            a <code>boolean</code> indicating whether or not to follow
 	 *            HTTP redirects.
 	 */
-	public void setInstanceFollowRedirects(boolean followRedirects);
+	void setInstanceFollowRedirects(boolean followRedirects);
 
 	/**
 	 * Set if to do output
@@ -262,7 +285,7 @@ public interface HttpConnection {
 	 * @param dooutput
 	 *            the new value.
 	 */
-	public void setDoOutput(boolean dooutput);
+	void setDoOutput(boolean dooutput);
 
 	/**
 	 * Set fixed length streaming mode
@@ -271,7 +294,7 @@ public interface HttpConnection {
 	 * @param contentLength
 	 *            The number of bytes which will be written to the OutputStream.
 	 */
-	public void setFixedLengthStreamingMode(int contentLength);
+	void setFixedLengthStreamingMode(int contentLength);
 
 	/**
 	 * Get output stream
@@ -280,7 +303,7 @@ public interface HttpConnection {
 	 * @return an output stream that writes to this connection.
 	 * @throws java.io.IOException
 	 */
-	public OutputStream getOutputStream() throws IOException;
+	OutputStream getOutputStream() throws IOException;
 
 	/**
 	 * Set chunked streaming mode
@@ -290,7 +313,7 @@ public interface HttpConnection {
 	 *            The number of bytes to write in each chunk. If chunklen is
 	 *            less than or equal to zero, a default value will be used.
 	 */
-	public void setChunkedStreamingMode(int chunklen);
+	void setChunkedStreamingMode(int chunklen);
 
 	/**
 	 * Get request method
@@ -298,7 +321,7 @@ public interface HttpConnection {
 	 * @see HttpURLConnection#getRequestMethod()
 	 * @return the HTTP request method
 	 */
-	public String getRequestMethod();
+	String getRequestMethod();
 
 	/**
 	 * Whether we use a proxy
@@ -306,7 +329,7 @@ public interface HttpConnection {
 	 * @see HttpURLConnection#usingProxy()
 	 * @return a boolean indicating if the connection is using a proxy.
 	 */
-	public boolean usingProxy();
+	boolean usingProxy();
 
 	/**
 	 * Connect
@@ -314,7 +337,7 @@ public interface HttpConnection {
 	 * @see HttpURLConnection#connect()
 	 * @throws java.io.IOException
 	 */
-	public void connect() throws IOException;
+	void connect() throws IOException;
 
 	/**
 	 * Configure the connection so that it can be used for https communication.
@@ -332,7 +355,7 @@ public interface HttpConnection {
 	 * @throws java.security.NoSuchAlgorithmException
 	 * @throws java.security.KeyManagementException
 	 */
-	public void configure(KeyManager[] km, TrustManager[] tm,
+	void configure(KeyManager[] km, TrustManager[] tm,
 			SecureRandom random) throws NoSuchAlgorithmException,
 			KeyManagementException;
 
@@ -345,6 +368,6 @@ public interface HttpConnection {
 	 * @throws java.security.NoSuchAlgorithmException
 	 * @throws java.security.KeyManagementException
 	 */
-	public void setHostnameVerifier(HostnameVerifier hostnameverifier)
+	void setHostnameVerifier(HostnameVerifier hostnameverifier)
 			throws NoSuchAlgorithmException, KeyManagementException;
 }

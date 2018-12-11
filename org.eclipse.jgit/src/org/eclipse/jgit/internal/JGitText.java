@@ -284,6 +284,7 @@ public class JGitText extends TranslationBundle {
 	/***/ public String createNewFileFailed;
 	/***/ public String createRequiresZeroOldId;
 	/***/ public String credentialPassword;
+	/***/ public String credentialPassphrase;
 	/***/ public String credentialUsername;
 	/***/ public String daemonAlreadyRunning;
 	/***/ public String daysAgo;
@@ -384,6 +385,13 @@ public class JGitText extends TranslationBundle {
 	/***/ public String gcLogExists;
 	/***/ public String gcTooManyUnpruned;
 	/***/ public String gitmodulesNotFound;
+	/***/ public String gpgFailedToParseSecretKey;
+	/***/ public String gpgNoCredentialsProvider;
+	/***/ public String gpgNoKeyring;
+	/***/ public String gpgNoKeyInLegacySecring;
+	/***/ public String gpgNoPublicKeyFound;
+	/***/ public String gpgNoSecretKeyForPublicKey;
+	/***/ public String gpgKeyUrish;
 	/***/ public String headRequiredToStash;
 	/***/ public String hoursAgo;
 	/***/ public String httpConfigCannotNormalizeURL;
@@ -565,6 +573,7 @@ public class JGitText extends TranslationBundle {
 	/***/ public String onlyAlreadyUpToDateAndFastForwardMergesAreAvailable;
 	/***/ public String onlyOneFetchSupported;
 	/***/ public String onlyOneOperationCallPerConnectionIsSupported;
+	/***/ public String onlyOpenPgpSupportedForSigning;
 	/***/ public String openFilesMustBeAtLeast1;
 	/***/ public String openingConnection;
 	/***/ public String operationCanceled;
@@ -729,7 +738,6 @@ public class JGitText extends TranslationBundle {
 	/***/ public String submoduleNameInvalid;
 	/***/ public String submoduleParentRemoteUrlInvalid;
 	/***/ public String submodulePathInvalid;
-	/***/ public String submodulesNotSupported;
 	/***/ public String submoduleUrlInvalid;
 	/***/ public String supportOnlyPackIndexVersion2;
 	/***/ public String systemConfigFileInvalid;
@@ -775,6 +783,7 @@ public class JGitText extends TranslationBundle {
 	/***/ public String unableToRemovePath;
 	/***/ public String unableToStore;
 	/***/ public String unableToWrite;
+	/***/ public String unableToSignCommitNoSecretKey;
 	/***/ public String unauthorized;
 	/***/ public String underflowedReftableBlock;
 	/***/ public String unencodeableFile;
