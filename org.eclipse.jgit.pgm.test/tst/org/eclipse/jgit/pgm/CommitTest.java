@@ -138,7 +138,7 @@ public class CommitTest extends CLIRepositoryTestCase {
 				.decode(unverifiedResult.getStderr().toByteArray());
 
 		assertTrue(unverifiedOutput.contains("551C63EA924F5C3D"));
-		assertTrue(unverifiedOutput.contains("No public key"));
+		assertTrue(unverifiedOutput.contains("Can't check signature"));
 	}
 
 	@Test
