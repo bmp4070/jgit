@@ -149,7 +149,6 @@ public class CommitTest extends CLIRepositoryTestCase {
 		File repoPath = createTempDirectory("commit_sign_temp");
 
 		decompress(repoTarPath, repoPath);
-		System.out.println(repoPath.toString());
 		String gnupgHome = getClass().getClassLoader().getResource("test_gnupg")
 				.getPath();
 		Repository verifiedSignDb = new FileRepositoryBuilder()
@@ -170,7 +169,7 @@ public class CommitTest extends CLIRepositoryTestCase {
 		assertTrue(verifiedOutput.contains("Good signature"));
 	}
 
-	public static void decompress(String in, File out) throws IOException {
+	private void decompress(String in, File out) throws IOException {
 		try (TarArchiveInputStream fin = new TarArchiveInputStream(
 				new FileInputStream(in))) {
 			TarArchiveEntry entry;
