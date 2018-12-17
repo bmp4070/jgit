@@ -43,11 +43,30 @@
 package org.eclipse.jgit.pgm;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.eclipse.jgit.lib.CLIRepositoryTestCase;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.util.FS;
+import org.eclipse.jgit.util.FS.ExecutionResult;
+import org.eclipse.jgit.util.RawParseUtils;
 import org.junit.Test;
 
 public class CommitTest extends CLIRepositoryTestCase {
+
+	private static final boolean IS_WINDOWS = System.getProperty("os.name")
+			.toLowerCase().contains("windows");
 
 	@Test
 	public void testCommitPath() throws Exception {
@@ -95,6 +114,77 @@ public class CommitTest extends CLIRepositoryTestCase {
 
 		result = toString(execute("git status -- a b"));
 		assertEquals("On branch master", result);
+	}
+
+	@Test
+	public void testUnverifiedCommitSign() throws Exception {
+		assumeFalse(IS_WINDOWS);
+		String repoTarPath = System.getProperty("user.dir") + File.separator
+				+ "tst-rsrc" + File.separator + "commit_sign_temp.tar";
+		File repoPath = createTempDirectory("commit_sign_temp");
+
+		decompress(repoTarPath, repoPath);
+		Repository unverifiedSignDb = new FileRepositoryBuilder()
+				.setWorkTree(repoPath).build();
+		FS fs = unverifiedSignDb.getFS();
+
+		ProcessBuilder builder = fs.runInShell("git", new String[] {
+				"verify-commit", "5d4be77e6665845a8f2b7f4d10bc6a3150af0dab" });
+		builder.directory(unverifiedSignDb.getWorkTree());
+		builder.environment().put("HOME", fs.userHome().getAbsolutePath());
+		ExecutionResult unverifiedResult = fs.execute(builder,
+				new ByteArrayInputStream(new byte[0]));
+		String unverifiedOutput = RawParseUtils
+				.decode(unverifiedResult.getStderr().toByteArray());
+
+		assertTrue(unverifiedOutput.contains("551C63EA924F5C3D"));
+		assertTrue(unverifiedOutput.contains("Can't check signature"));
+	}
+
+	@Test
+	public void testVerifiedCommitSign() throws Exception {
+		assumeFalse(IS_WINDOWS);
+		String repoTarPath = System.getProperty("user.dir") + File.separator
+				+ "tst-rsrc" + File.separator + "commit_sign_temp.tar";
+		File repoPath = createTempDirectory("commit_sign_temp");
+
+		decompress(repoTarPath, repoPath);
+		String gnupgHome = getClass().getClassLoader().getResource("test_gnupg")
+				.getPath();
+		Repository verifiedSignDb = new FileRepositoryBuilder()
+				.setWorkTree(repoPath).build();
+		FS fs = verifiedSignDb.getFS();
+
+		ProcessBuilder builder = fs.runInShell("git", new String[] {
+				"verify-commit", "5d4be77e6665845a8f2b7f4d10bc6a3150af0dab" });
+		builder.directory(verifiedSignDb.getWorkTree());
+		builder.environment().put("HOME", fs.userHome().getAbsolutePath());
+		builder.environment().put("GNUPGHOME", gnupgHome);
+		ExecutionResult verifiedResult = fs.execute(builder,
+				new ByteArrayInputStream(new byte[0]));
+		String verifiedOutput = RawParseUtils
+				.decode(verifiedResult.getStderr().toByteArray());
+
+		assertTrue(verifiedOutput.contains("551C63EA924F5C3D"));
+		assertTrue(verifiedOutput.contains("Good signature"));
+	}
+
+	private void decompress(String in, File out) throws IOException {
+		try (TarArchiveInputStream fin = new TarArchiveInputStream(
+				new FileInputStream(in))) {
+			TarArchiveEntry entry;
+			while ((entry = fin.getNextTarEntry()) != null) {
+				if (entry.isDirectory()) {
+					continue;
+				}
+				File curfile = new File(out, entry.getName());
+				File parent = curfile.getParentFile();
+				if (!parent.exists()) {
+					parent.mkdirs();
+				}
+				IOUtils.copy(fin, new FileOutputStream(curfile));
+			}
+		}
 	}
 
 }
