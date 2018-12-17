@@ -48,7 +48,13 @@ import static org.junit.Assume.assumeFalse;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.utils.IOUtils;
 import org.eclipse.jgit.lib.CLIRepositoryTestCase;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -113,10 +119,13 @@ public class CommitTest extends CLIRepositoryTestCase {
 	@Test
 	public void testUnverifiedCommitSign() throws Exception {
 		assumeFalse(IS_WINDOWS);
-		String repoPath = System.getProperty("user.dir") + File.separator
-				+ "tst-rsrc" + File.separator + "commit_sign_temp";
+		String repoTarPath = System.getProperty("user.dir") + File.separator
+				+ "tst-rsrc" + File.separator + "commit_sign_temp.tar";
+		File repoPath = createTempDirectory("commit_sign_temp");
+
+		decompress(repoTarPath, repoPath);
 		Repository unverifiedSignDb = new FileRepositoryBuilder()
-				.setWorkTree(new File(repoPath)).build();
+				.setWorkTree(repoPath).build();
 		FS fs = unverifiedSignDb.getFS();
 
 		ProcessBuilder builder = fs.runInShell("git", new String[] {
@@ -135,12 +144,16 @@ public class CommitTest extends CLIRepositoryTestCase {
 	@Test
 	public void testVerifiedCommitSign() throws Exception {
 		assumeFalse(IS_WINDOWS);
-		String repoPath = System.getProperty("user.dir") + File.separator
-				+ "tst-rsrc" + File.separator + "commit_sign_temp";
+		String repoTarPath = System.getProperty("user.dir") + File.separator
+				+ "tst-rsrc" + File.separator + "commit_sign_temp.tar";
+		File repoPath = createTempDirectory("commit_sign_temp");
+
+		decompress(repoTarPath, repoPath);
+		System.out.println(repoPath.toString());
 		String gnupgHome = getClass().getClassLoader().getResource("test_gnupg")
 				.getPath();
 		Repository verifiedSignDb = new FileRepositoryBuilder()
-				.setWorkTree(new File(repoPath)).build();
+				.setWorkTree(repoPath).build();
 		FS fs = verifiedSignDb.getFS();
 
 		ProcessBuilder builder = fs.runInShell("git", new String[] {
@@ -155,6 +168,24 @@ public class CommitTest extends CLIRepositoryTestCase {
 
 		assertTrue(verifiedOutput.contains("551C63EA924F5C3D"));
 		assertTrue(verifiedOutput.contains("Good signature"));
+	}
+
+	public static void decompress(String in, File out) throws IOException {
+		try (TarArchiveInputStream fin = new TarArchiveInputStream(
+				new FileInputStream(in))) {
+			TarArchiveEntry entry;
+			while ((entry = fin.getNextTarEntry()) != null) {
+				if (entry.isDirectory()) {
+					continue;
+				}
+				File curfile = new File(out, entry.getName());
+				File parent = curfile.getParentFile();
+				if (!parent.exists()) {
+					parent.mkdirs();
+				}
+				IOUtils.copy(fin, new FileOutputStream(curfile));
+			}
+		}
 	}
 
 }
